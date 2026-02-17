@@ -1,34 +1,188 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.App-header {
-    background-color: #0f0f10;
+/* Main app container - no centering */
+.App {
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    background: hsl(220 30% 2%);
 }
 
-.App-link {
-    color: #61dafb;
+/* Recharts customization */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+    stroke: rgba(148, 163, 184, 0.1);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
+.recharts-text {
+    fill: hsl(215 20% 55%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+}
+
+.recharts-tooltip-wrapper {
+    outline: none;
+}
+
+.recharts-default-tooltip {
+    background: hsl(220 25% 5%) !important;
+    border: 1px solid rgba(56, 189, 248, 0.2) !important;
+    border-radius: 0 !important;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.recharts-tooltip-label {
+    color: hsl(210 40% 96%) !important;
+    font-weight: 600;
+}
+
+.recharts-tooltip-item {
+    color: hsl(215 20% 55%) !important;
+}
+
+/* Sidebar styles */
+.sidebar {
+    background: hsl(220 25% 3%);
+    border-right: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.sidebar-item {
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sidebar-item:hover {
+    background: rgba(56, 189, 248, 0.05);
+}
+
+.sidebar-item.active {
+    background: rgba(56, 189, 248, 0.1);
+    border-left: 2px solid hsl(199 89% 48%);
+}
+
+/* Modal/Dialog glass effect */
+.dialog-glass {
+    background: rgba(9, 15, 27, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+/* Metric card */
+.metric-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, hsl(199 89% 48%), transparent);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.metric-card:hover::before {
+    opacity: 1;
+}
+
+/* Alert card styles */
+.alert-card {
+    border-left: 3px solid;
+}
+
+.alert-card.critical {
+    border-left-color: hsl(0 84% 60%);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.alert-card.warning {
+    border-left-color: hsl(38 92% 50%);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.alert-card.info {
+    border-left-color: hsl(199 89% 48%);
+    background: rgba(56, 189, 248, 0.05);
+}
+
+/* Device status indicator */
+.device-status {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.device-status.online {
+    background: hsl(160 84% 39%);
+    box-shadow: 0 0 8px hsl(160 84% 39%);
+}
+
+.device-status.offline {
+    background: hsl(0 84% 60%);
+    box-shadow: 0 0 8px hsl(0 84% 60%);
+}
+
+.device-status.warning {
+    background: hsl(38 92% 50%);
+    box-shadow: 0 0 8px hsl(38 92% 50%);
+}
+
+.device-status.unknown {
+    background: hsl(215 20% 55%);
+}
+
+/* Category color dot */
+.category-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* Bento grid */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .bento-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
-    to {
-        transform: rotate(360deg);
+}
+
+@media (max-width: 640px) {
+    .bento-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Span utilities for bento */
+.col-span-3 { grid-column: span 3; }
+.col-span-4 { grid-column: span 4; }
+.col-span-6 { grid-column: span 6; }
+.col-span-8 { grid-column: span 8; }
+.col-span-12 { grid-column: span 12; }
+
+@media (max-width: 1024px) {
+    .col-span-3,
+    .col-span-4,
+    .col-span-6,
+    .col-span-8 {
+        grid-column: span 2;
+    }
+    .col-span-12 {
+        grid-column: span 4;
+    }
+}
+
+@media (max-width: 640px) {
+    .col-span-3,
+    .col-span-4,
+    .col-span-6,
+    .col-span-8,
+    .col-span-12 {
+        grid-column: span 1;
     }
 }
