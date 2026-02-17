@@ -522,6 +522,53 @@ async def poll_all_devices(background_tasks: BackgroundTasks):
         background_tasks.add_task(poll_single_device, device)
     return {"message": f"Polling started for {len(devices)} devices"}
 
+@api_router.get("/monitoring/due-for-poll")
+async def get_devices_due_for_poll():
+    """Get devices that are due for automatic polling"""
+    now = datetime.now(timezone.utc)
+    devices = await db.devices.find({"auto_poll": True}, {"_id": 0}).to_list(1000)
+    
+    due_devices = []
+    for device in devices:
+        interval = device.get('polling_interval', 300)
+        last_polled = device.get('last_polled')
+        
+        if last_polled is None:
+            due_devices.append(device)
+        else:
+            if isinstance(last_polled, str):
+                last_polled = datetime.fromisoformat(last_polled)
+            if (now - last_polled).total_seconds() >= interval:
+                due_devices.append(device)
+    
+    return due_devices
+
+@api_router.post("/monitoring/auto-poll")
+async def auto_poll_due_devices(background_tasks: BackgroundTasks):
+    """Automatically poll devices that are due based on their polling interval"""
+    now = datetime.now(timezone.utc)
+    devices = await db.devices.find({"auto_poll": True}, {"_id": 0}).to_list(1000)
+    
+    polled_count = 0
+    for device in devices:
+        interval = device.get('polling_interval', 300)
+        last_polled = device.get('last_polled')
+        
+        should_poll = False
+        if last_polled is None:
+            should_poll = True
+        else:
+            if isinstance(last_polled, str):
+                last_polled = datetime.fromisoformat(last_polled)
+            if (now - last_polled).total_seconds() >= interval:
+                should_poll = True
+        
+        if should_poll:
+            background_tasks.add_task(poll_single_device, device)
+            polled_count += 1
+    
+    return {"message": f"Auto-polling started for {polled_count} devices"}
+
 # =============== ALERT ENDPOINTS ===============
 
 @api_router.get("/alerts", response_model=List[Alert])
