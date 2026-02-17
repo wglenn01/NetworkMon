@@ -244,6 +244,56 @@ async def delete_category(category_id: str):
     await db.devices.delete_many({"category_id": category_id})
     return {"message": "Category deleted"}
 
+# =============== SNMP TEMPLATE ENDPOINTS ===============
+
+@api_router.post("/templates", response_model=SNMPTemplate)
+async def create_template(input: SNMPTemplateCreate):
+    template_data = input.model_dump()
+    template_data['oids'] = [oid.model_dump() if hasattr(oid, 'model_dump') else oid for oid in template_data['oids']]
+    template = SNMPTemplate(**template_data)
+    doc = serialize_doc(template.model_dump())
+    await db.snmp_templates.insert_one(doc)
+    return template
+
+@api_router.get("/templates", response_model=List[SNMPTemplate])
+async def get_templates():
+    templates = await db.snmp_templates.find({}, {"_id": 0}).to_list(100)
+    for t in templates:
+        deserialize_datetime(t, ['created_at'])
+    return templates
+
+@api_router.get("/templates/{template_id}", response_model=SNMPTemplate)
+async def get_template(template_id: str):
+    template = await db.snmp_templates.find_one({"id": template_id}, {"_id": 0})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    deserialize_datetime(template, ['created_at'])
+    return template
+
+@api_router.put("/templates/{template_id}", response_model=SNMPTemplate)
+async def update_template(template_id: str, input: SNMPTemplateUpdate):
+    template = await db.snmp_templates.find_one({"id": template_id}, {"_id": 0})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    if 'oids' in update_data:
+        update_data['oids'] = [oid.model_dump() if hasattr(oid, 'model_dump') else oid for oid in update_data['oids']]
+    
+    if update_data:
+        await db.snmp_templates.update_one({"id": template_id}, {"$set": update_data})
+    
+    updated = await db.snmp_templates.find_one({"id": template_id}, {"_id": 0})
+    deserialize_datetime(updated, ['created_at'])
+    return updated
+
+@api_router.delete("/templates/{template_id}")
+async def delete_template(template_id: str):
+    result = await db.snmp_templates.delete_one({"id": template_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"message": "Template deleted"}
+
 # =============== DEVICE ENDPOINTS ===============
 
 @api_router.post("/devices", response_model=Device)
