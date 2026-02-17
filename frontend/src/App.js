@@ -884,7 +884,7 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
               key={index}
               title={metric.metric_name}
               value={formattedValue}
-              unit={dataType !== 'bytes' ? displayUnit : ''}
+              unit={!isAutoScalingType(dataType) ? displayUnit : ''}
               icon={metric.metric_type === 'ping' ? Wifi : Activity}
               color={metric.metric_type === 'ping' ? 'success' : 'primary'}
             />
