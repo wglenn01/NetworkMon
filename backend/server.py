@@ -424,6 +424,12 @@ async def poll_single_device(device: dict):
     now = datetime.now(timezone.utc)
     alerts_to_create = []
     
+    # Update last_polled timestamp
+    await db.devices.update_one(
+        {"id": device_id},
+        {"$set": {"last_polled": now.isoformat()}}
+    )
+    
     # Ping if enabled
     if device.get('ping_enabled', True):
         ping_result = await ping_host(ip)
