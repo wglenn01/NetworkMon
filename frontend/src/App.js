@@ -877,7 +877,6 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
             />
           );
         })}
-        ))}
       </div>
       
       {/* Charts */}
