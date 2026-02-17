@@ -204,6 +204,23 @@ class AlertCreate(BaseModel):
     value: Optional[float] = None
     threshold: Optional[float] = None
 
+class PinnedGraph(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    device_id: str
+    device_name: str
+    metric_type: str  # ping or snmp
+    metric_name: str
+    position: int = 0  # Order on dashboard
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class PinnedGraphCreate(BaseModel):
+    device_id: str
+    device_name: str
+    metric_type: str
+    metric_name: str
+    position: int = 0
+
 # =============== HELPER FUNCTIONS ===============
 
 def serialize_datetime(obj):
