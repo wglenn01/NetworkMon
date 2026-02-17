@@ -898,10 +898,11 @@ async def get_dashboard_stats():
     ]
     category_counts = await db.devices.aggregate(category_pipeline).to_list(100)
     
-    # Get active alerts count
+    # Get active alerts count (not acknowledged and not resolved)
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     active_alerts = await db.alerts.count_documents({
         "acknowledged": False,
+        "resolved": {"$ne": True},
         "created_at": {"$gte": cutoff.isoformat()}
     })
     
