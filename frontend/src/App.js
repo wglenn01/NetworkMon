@@ -1845,25 +1845,35 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
                   data-testid="new-oid-name-input"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
+                <Select value={newOid.data_type} onValueChange={(v) => setNewOid(prev => ({ ...prev, data_type: v }))}>
+                  <SelectTrigger className="input-technical text-xs">
+                    <SelectValue placeholder="Data Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dataTypes.map(dt => (
+                      <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input 
                   value={newOid.unit}
                   onChange={(e) => setNewOid(prev => ({ ...prev, unit: e.target.value }))}
                   className="input-technical text-xs"
-                  placeholder="Unit (e.g., %)"
+                  placeholder="Unit"
                 />
                 <Input 
                   value={newOid.threshold_warning}
                   onChange={(e) => setNewOid(prev => ({ ...prev, threshold_warning: e.target.value }))}
                   className="input-technical text-xs"
-                  placeholder="Warning Threshold"
+                  placeholder="Warning"
                   type="number"
                 />
                 <Input 
                   value={newOid.threshold_critical}
                   onChange={(e) => setNewOid(prev => ({ ...prev, threshold_critical: e.target.value }))}
                   className="input-technical text-xs"
-                  placeholder="Critical Threshold"
+                  placeholder="Critical"
                   type="number"
                 />
               </div>
