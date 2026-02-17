@@ -11,6 +11,7 @@ class NetworkMonitoringAPITester:
         self.tests_passed = 0
         self.category_ids = []
         self.device_ids = []
+        self.template_ids = []
 
     def run_test(self, name, method, endpoint, expected_status, data=None, params=None):
         """Run a single API test"""
