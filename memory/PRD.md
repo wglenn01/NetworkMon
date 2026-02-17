@@ -9,6 +9,8 @@ Dark themed network monitoring tool where users can add devices to categories (R
 - Popup notifications when device goes down or threshold exceeded
 - No authentication needed
 - Dark themed UI
+- Data type specification for SNMP OID values (Mbps, Text, Percentage, etc.)
+- Device search functionality within categories
 
 ## Architecture
 - **Frontend**: React with Recharts, Sonner (toasts), Shadcn UI components
@@ -29,8 +31,38 @@ Dark themed network monitoring tool where users can add devices to categories (R
 - [x] Dashboard with network overview
 - [x] Device detail page with graphs
 - [x] Time range selection (1hr, 24hr, 7 days)
+- [x] SNMP templates for reusable OID configurations
+- [x] Auto-polling with configurable intervals
+- [x] Pinnable graphs to dashboard
+- [x] Alert history on device detail page
+- [x] Online/offline device counts in category sidebar
+- [x] SNMP OID data type specification
+- [x] Device search/filter functionality
 
-## What's Been Implemented (2026-02-17)
+## What's Been Implemented
+
+### 2026-02-17 (Latest Session)
+- **SNMP OID Data Type Feature**:
+  - Added `data_type` field to OIDConfig model (gauge, counter, mbps, kbps, bytes, percentage, text)
+  - Data type dropdown selector in Add/Edit Device dialog
+  - Data type dropdown selector in Add/Edit Template dialog
+  - OID list displays 6 columns: OID, Name, Type, Unit, Warning, Critical
+  - Device detail page shows data type badge for each OID
+  - `formatValue` function converts values based on data type:
+    - mbps: divides by 1,000,000
+    - kbps: divides by 1,000
+    - bytes: auto-scales to KB/MB/GB
+    - percentage: shows with % unit
+    - text: displays as-is without graphing
+
+- **Device Search Feature**:
+  - Search input in DeviceList header
+  - Filters by device name OR IP address
+  - Shows "Found X devices matching 'query'" when searching
+  - Clear (X) button to reset search
+  - Works within active category filter
+
+### Previous Sessions
 - Full-stack network monitoring application
 - Dark cybernetic theme with scanline effects
 - Sidebar navigation with category filtering
@@ -41,26 +73,26 @@ Dark themed network monitoring tool where users can add devices to categories (R
   - Interactive charts (Area/Line charts with Recharts)
   - Time range selector
   - OID configuration display
+  - Alert history
 - Alerts page with acknowledge/delete functionality
-- Add/Edit Device dialog with custom OID configuration
-- Add Category dialog
-- Sample data seeding
-- Poll All and Poll Device functionality
+- SNMP Templates with CRUD operations
+- Auto-polling scheduler with configurable intervals
+- Pinnable graphs to main dashboard
 - Toast notifications for alerts
+- Deployment guide for Proxmox/Ubuntu
 
 ## MOCKED Components
-- SNMP values are simulated (get_snmp_value returns realistic random values based on OID patterns)
-- Ping uses actual system ping command but may fail on non-routable IPs
+- **SNMP values are simulated** - `get_snmp_value` returns realistic random values based on OID patterns
+- **Ping uses actual system ping command** but may fail on non-routable IPs
 
 ## Prioritized Backlog
 
-### P0 (Critical - Not Yet Done)
-- None - MVP complete
+### P0 (Critical)
+- **Implement real SNMP monitoring** - Replace mocked `get_snmp_value` with actual pysnmp calls
 
 ### P1 (Important)
 - Custom date range picker with calendar
 - Export device/monitoring data to CSV
-- Scheduled automatic polling
 - Email/webhook notifications for critical alerts
 
 ### P2 (Nice to Have)
@@ -71,7 +103,27 @@ Dark themed network monitoring tool where users can add devices to categories (R
 - Dark/Light theme toggle
 
 ## Next Tasks
-1. Implement calendar-based custom date range selection
-2. Add scheduled polling background task
-3. Implement actual SNMP polling with pysnmp-lextudio
-4. Add data export functionality
+1. Implement actual SNMP polling with pysnmp-lextudio library
+2. Add calendar-based custom date range selection
+3. Implement data export functionality
+4. Add email/webhook notification support
+
+## File Structure
+```
+/app/
+├── backend/
+│   ├── server.py       # Main FastAPI app with all endpoints and models
+│   └── .env
+├── frontend/
+│   ├── src/
+│   │   ├── App.js        # Main component with all page components
+│   │   ├── components/ui/ # Shadcn UI components
+│   │   └── index.css     # Global styles with dark theme
+│   └── .env
+├── deployment.md         # Deployment guide for Proxmox/Ubuntu
+└── memory/PRD.md        # This file
+```
+
+## Testing
+- Latest test: iteration_5.json - 100% pass rate for frontend features
+- All data type and search features verified working
