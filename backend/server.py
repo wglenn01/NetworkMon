@@ -693,7 +693,7 @@ async def poll_single_device(device: dict):
                             device_name=device_name,
                             alert_type="threshold_critical",
                             metric_name=name,
-                            message=f"{name} on {device_name} is critical: {value:.2f}{unit} (threshold: {threshold_critical}{unit})",
+                            message=f"{name} on {device_name} is critical: {value:.2f}{unit} ({op_symbol} {threshold_critical}{unit})",
                             value=value,
                             threshold=threshold_critical
                         ))
@@ -704,7 +704,7 @@ async def poll_single_device(device: dict):
                             device_name=device_name,
                             alert_type="threshold_warning",
                             metric_name=name,
-                            message=f"{name} on {device_name} is warning: {value:.2f}{unit} (threshold: {threshold_warning}{unit})",
+                            message=f"{name} on {device_name} is warning: {value:.2f}{unit} ({op_symbol} {threshold_warning}{unit})",
                             value=value,
                             threshold=threshold_warning
                         ))
