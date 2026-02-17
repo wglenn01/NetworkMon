@@ -745,6 +745,8 @@ async def seed_data():
             "ip_address": "192.168.1.1",
             "category_id": created_categories[0].id,
             "community_string": "public",
+            "polling_interval": 60,
+            "auto_poll": True,
             "oids": [
                 {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
                 {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "unit": "%", "threshold_warning": 75, "threshold_critical": 95},
@@ -756,6 +758,8 @@ async def seed_data():
             "ip_address": "192.168.1.2",
             "category_id": created_categories[0].id,
             "community_string": "public",
+            "polling_interval": 120,
+            "auto_poll": True,
             "oids": [
                 {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
                 {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "unit": "bps"},
@@ -768,6 +772,8 @@ async def seed_data():
             "ip_address": "192.168.2.1",
             "category_id": created_categories[1].id,
             "community_string": "public",
+            "polling_interval": 300,
+            "auto_poll": True,
             "oids": [
                 {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 60, "threshold_critical": 80},
             ],
@@ -778,6 +784,8 @@ async def seed_data():
             "ip_address": "192.168.2.2",
             "category_id": created_categories[1].id,
             "community_string": "public",
+            "polling_interval": 300,
+            "auto_poll": True,
             "oids": [
                 {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%"},
             ],
@@ -788,6 +796,8 @@ async def seed_data():
             "ip_address": "10.0.0.1",
             "category_id": created_categories[2].id,
             "community_string": "public",
+            "polling_interval": 60,
+            "auto_poll": True,
             "oids": [
                 {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Traffic In", "unit": "Mbps"},
                 {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Traffic Out", "unit": "Mbps"},
@@ -799,6 +809,8 @@ async def seed_data():
             "ip_address": "172.16.1.1",
             "category_id": created_categories[3].id,
             "community_string": "public",
+            "polling_interval": 600,
+            "auto_poll": True,
             "oids": [
                 {"oid": "1.3.6.1.2.1.1.3.0", "name": "Uptime", "unit": "s"},
             ],
@@ -809,6 +821,8 @@ async def seed_data():
             "ip_address": "172.16.1.2",
             "category_id": created_categories[3].id,
             "community_string": "public",
+            "polling_interval": 600,
+            "auto_poll": False,
             "oids": [],
             "status": "offline"
         },
