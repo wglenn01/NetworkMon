@@ -107,6 +107,7 @@ class OIDConfig(BaseModel):
     oid: str
     name: str
     unit: str = ""
+    data_type: str = "gauge"  # gauge, counter, mbps, kbps, bytes, percentage, text
     threshold_warning: Optional[float] = None
     threshold_critical: Optional[float] = None
 
