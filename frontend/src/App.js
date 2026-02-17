@@ -1467,6 +1467,16 @@ function App() {
     }
   };
   
+  // Template handlers
+  const handleSaveTemplate = async (data) => {
+    try {
+      await axios.post(`${API}/templates`, data);
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to save template');
+    }
+  };
+  
   // Alert handlers
   const handleAcknowledgeAlert = async (id) => {
     try {
