@@ -1054,10 +1054,16 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
             {device.oids?.map((oid, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-background/50 border border-border/20">
                 <div>
-                  <p className="font-medium text-sm text-foreground">{oid.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm text-foreground">{oid.name}</p>
+                    <Badge variant="outline" className="text-[9px] font-mono capitalize">
+                      {oid.data_type || 'gauge'}
+                    </Badge>
+                  </div>
                   <p className="text-xs text-muted-foreground font-mono">{oid.oid}</p>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  {oid.unit && <span>Unit: {oid.unit}</span>}
                   {oid.threshold_warning && (
                     <span className="text-amber-400">Warning: {oid.threshold_warning}{oid.unit}</span>
                   )}
