@@ -6,7 +6,8 @@ import { Toaster, toast } from "sonner";
 import { 
   Activity, Server, Wifi, AlertTriangle, Shield, Home, 
   Plus, Trash2, Edit, RefreshCw, Settings, ChevronRight,
-  Router, GitBranch, Radio, Zap, X, Check, Clock, TrendingUp
+  Router, GitBranch, Radio, Zap, X, Check, Clock, TrendingUp,
+  FileText, Copy, Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
