@@ -1441,13 +1441,26 @@ const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
               )}
             </div>
             
+            {/* OID List Header */}
+            {formData.oids.length > 0 && (
+              <div className="grid grid-cols-6 gap-2 px-2 text-[10px] text-muted-foreground uppercase tracking-wider font-mono">
+                <span>OID</span>
+                <span>Name</span>
+                <span>Type</span>
+                <span>Unit</span>
+                <span>Warning</span>
+                <span>Critical</span>
+              </div>
+            )}
+            
             <ScrollArea className="max-h-[200px]">
               <div className="space-y-2">
                 {formData.oids.map((oid, index) => (
                   <div key={index} className="flex items-center gap-2 p-2 bg-background/50 border border-border/20">
-                    <div className="flex-1 grid grid-cols-5 gap-2 text-xs">
+                    <div className="flex-1 grid grid-cols-6 gap-2 text-xs">
                       <span className="font-mono truncate" title={oid.oid}>{oid.oid}</span>
                       <span>{oid.name}</span>
+                      <span className="text-primary capitalize">{oid.data_type || 'gauge'}</span>
                       <span>{oid.unit || '-'}</span>
                       <span className="text-amber-400">{oid.threshold_warning || '-'}</span>
                       <span className="text-red-400">{oid.threshold_critical || '-'}</span>
@@ -1481,12 +1494,22 @@ const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
                   placeholder="Metric Name"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
+                <Select value={newOid.data_type} onValueChange={(v) => setNewOid(prev => ({ ...prev, data_type: v }))}>
+                  <SelectTrigger className="input-technical text-xs">
+                    <SelectValue placeholder="Data Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dataTypes.map(dt => (
+                      <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input 
                   value={newOid.unit}
                   onChange={(e) => setNewOid(prev => ({ ...prev, unit: e.target.value }))}
                   className="input-technical text-xs"
-                  placeholder="Unit (e.g., %)"
+                  placeholder="Unit"
                 />
                 <Input 
                   value={newOid.threshold_warning}
