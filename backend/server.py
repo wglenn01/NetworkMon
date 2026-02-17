@@ -288,21 +288,11 @@ async def get_snmp_value(ip: str, community: str, oid: str) -> Optional[Union[st
     try:
         logger.info(f"SNMP GET: {ip} community={community} oid={oid}")
         
-        # Create transport target - syntax varies by pysnmp version
-        try:
-            # Newer pysnmp syntax
-            transport = UdpTransportTarget((ip, 161))
-            transport.timeout = 5
-            transport.retries = 2
-        except:
-            # Fallback
-            transport = UdpTransportTarget((ip, 161), timeout=5, retries=2)
-        
         # Perform SNMP GET (SNMPv2c with mpModel=1)
         error_indication, error_status, error_index, var_binds = await snmp_get_cmd(
             SnmpEngine(),
             CommunityData(community, mpModel=1),
-            transport,
+            UdpTransportTarget((ip, 161)),
             ContextData(),
             ObjectType(ObjectIdentity(oid))
         )
