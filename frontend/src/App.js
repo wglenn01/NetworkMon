@@ -1985,11 +1985,12 @@ const CategoryDialog = ({ open, onOpenChange, onSave }) => {
 };
 
 // Main Layout Component
-const MainLayout = ({ children, categories, activeCategory, setActiveCategory, onAddCategory, onDeleteCategory }) => {
+const MainLayout = ({ children, categories, categoryStats, activeCategory, setActiveCategory, onAddCategory, onDeleteCategory }) => {
   return (
     <div className="flex min-h-screen">
       <Sidebar 
         categories={categories}
+        categoryStats={categoryStats}
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
         onAddCategory={onAddCategory}
@@ -2006,9 +2007,11 @@ const MainLayout = ({ children, categories, activeCategory, setActiveCategory, o
 // Main App Component
 function App() {
   const [categories, setCategories] = useState([]);
+  const [categoryStats, setCategoryStats] = useState([]);
   const [devices, setDevices] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [pinnedGraphs, setPinnedGraphs] = useState([]);
   const [schedulerStatus, setSchedulerStatus] = useState(null);
   const [stats, setStats] = useState({
     total_devices: 0,
@@ -2026,13 +2029,15 @@ function App() {
   
   const fetchData = useCallback(async () => {
     try {
-      const [catRes, devRes, alertRes, statsRes, templateRes, schedulerRes] = await Promise.all([
+      const [catRes, devRes, alertRes, statsRes, templateRes, schedulerRes, catStatsRes, pinnedRes] = await Promise.all([
         axios.get(`${API}/categories`),
         axios.get(`${API}/devices`),
         axios.get(`${API}/alerts?hours=24`),
         axios.get(`${API}/dashboard/stats`),
         axios.get(`${API}/templates`),
-        axios.get(`${API}/scheduler/status`)
+        axios.get(`${API}/scheduler/status`),
+        axios.get(`${API}/categories/stats`),
+        axios.get(`${API}/pinned-graphs`)
       ]);
       setCategories(catRes.data);
       setDevices(devRes.data);
