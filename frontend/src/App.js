@@ -156,18 +156,6 @@ const Sidebar = ({ categories, categoryStats, activeCategory, setActiveCategory,
           </div>
         </div>
       </ScrollArea>
-      
-      <div className="p-4 border-t border-border/20">
-        <Button 
-          variant="outline" 
-          className="w-full btn-technical justify-center gap-2"
-          onClick={() => axios.post(`${API}/seed`).then(() => { toast.success('Sample data loaded'); window.location.reload(); })}
-          data-testid="load-sample-data-btn"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Load Sample Data
-        </Button>
-      </div>
     </div>
   );
 };
