@@ -56,6 +56,27 @@ class OIDConfig(BaseModel):
     threshold_warning: Optional[float] = None
     threshold_critical: Optional[float] = None
 
+class SNMPTemplate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: Optional[str] = ""
+    brand: Optional[str] = ""  # e.g., Cisco, Ubiquiti, Mikrotik
+    oids: List[OIDConfig] = []
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class SNMPTemplateCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    brand: Optional[str] = ""
+    oids: List[OIDConfig] = []
+
+class SNMPTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    brand: Optional[str] = None
+    oids: Optional[List[OIDConfig]] = None
+
 class Device(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
