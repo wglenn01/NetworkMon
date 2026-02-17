@@ -1786,6 +1786,7 @@ function App() {
   const [devices, setDevices] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [schedulerStatus, setSchedulerStatus] = useState(null);
   const [stats, setStats] = useState({
     total_devices: 0,
     online_devices: 0,
@@ -1802,18 +1803,20 @@ function App() {
   
   const fetchData = useCallback(async () => {
     try {
-      const [catRes, devRes, alertRes, statsRes, templateRes] = await Promise.all([
+      const [catRes, devRes, alertRes, statsRes, templateRes, schedulerRes] = await Promise.all([
         axios.get(`${API}/categories`),
         axios.get(`${API}/devices`),
         axios.get(`${API}/alerts?hours=24`),
         axios.get(`${API}/dashboard/stats`),
-        axios.get(`${API}/templates`)
+        axios.get(`${API}/templates`),
+        axios.get(`${API}/scheduler/status`)
       ]);
       setCategories(catRes.data);
       setDevices(devRes.data);
       setAlerts(alertRes.data);
       setStats(statsRes.data);
       setTemplates(templateRes.data);
+      setSchedulerStatus(schedulerRes.data);
       
       // Show toast for new unacknowledged alerts
       const newAlerts = alertRes.data.filter(a => !a.acknowledged);
