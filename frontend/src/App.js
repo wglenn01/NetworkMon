@@ -210,8 +210,20 @@ const MetricCard = ({ title, value, unit, icon: Icon, trend, color = "primary" }
 };
 
 // Dashboard Component
-const Dashboard = ({ stats, alerts, devices, categories }) => {
+const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus }) => {
   const navigate = useNavigate();
+  
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return 'Never';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
   
   return (
     <div className="space-y-6 animate-fade-in" data-testid="dashboard">
@@ -220,14 +232,25 @@ const Dashboard = ({ stats, alerts, devices, categories }) => {
           <h1 className="text-3xl font-bold tracking-tight font-mono text-foreground">Network Overview</h1>
           <p className="text-muted-foreground mt-1">Monitor your infrastructure in real-time</p>
         </div>
-        <Button 
-          className="btn-technical gap-2"
-          onClick={() => axios.post(`${API}/monitoring/poll-all`).then(() => toast.success('Polling all devices...'))}
-          data-testid="poll-all-btn"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Poll All
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Scheduler Status Indicator */}
+          {schedulerStatus && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-card/50 border border-border/30 text-xs">
+              <div className={`w-2 h-2 rounded-full ${schedulerStatus.scheduler_running ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+              <span className="text-muted-foreground font-mono">
+                Auto-poll: {schedulerStatus.auto_poll_enabled_devices} devices
+              </span>
+            </div>
+          )}
+          <Button 
+            className="btn-technical gap-2"
+            onClick={() => axios.post(`${API}/monitoring/poll-all`).then(() => toast.success('Polling all devices...'))}
+            data-testid="poll-all-btn"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Poll All
+          </Button>
+        </div>
       </div>
       
       {/* Stats Grid */}
