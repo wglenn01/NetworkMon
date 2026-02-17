@@ -354,6 +354,16 @@ def main():
         # Alert tests
         tester.test_get_alerts()
         
+        # Template tests - NEW FUNCTIONALITY
+        tester.test_get_templates()
+        tester.test_create_template()
+        tester.test_get_template_by_id()
+        tester.test_update_template()
+        
+        # Auto polling tests - NEW FUNCTIONALITY
+        tester.test_device_auto_poll_settings()
+        tester.test_auto_poll_endpoint()
+        
         # Seed data test
         tester.test_seed_data()
         
