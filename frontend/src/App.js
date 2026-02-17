@@ -1894,6 +1894,18 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
               )}
             </div>
             
+            {/* OID List Header */}
+            {formData.oids.length > 0 && (
+              <div className="grid grid-cols-6 gap-2 px-2 text-[10px] text-muted-foreground uppercase tracking-wider font-mono">
+                <span>OID</span>
+                <span>Name</span>
+                <span>Type</span>
+                <span>Unit</span>
+                <span>Warning</span>
+                <span>Critical</span>
+              </div>
+            )}
+            
             {/* Existing OIDs */}
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {formData.oids.map((oid, index) => (
