@@ -838,6 +838,343 @@ const AlertsPage = ({ alerts, onAcknowledge, onDelete, onClear, onRefresh }) => 
   );
 };
 
+// Templates Page Component
+const TemplatesPage = ({ templates, onSave, onDelete, onRefresh }) => {
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const handleEdit = (template) => {
+    setEditingTemplate(template);
+    setDialogOpen(true);
+  };
+  
+  const handleAdd = () => {
+    setEditingTemplate(null);
+    setDialogOpen(true);
+  };
+  
+  const handleSave = async (data) => {
+    await onSave(data, editingTemplate?.id);
+    setDialogOpen(false);
+  };
+  
+  // Group templates by brand
+  const templatesByBrand = templates.reduce((acc, t) => {
+    const brand = t.brand || 'Other';
+    if (!acc[brand]) acc[brand] = [];
+    acc[brand].push(t);
+    return acc;
+  }, {});
+  
+  return (
+    <div className="space-y-6 animate-fade-in" data-testid="templates-page">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight font-mono text-foreground">SNMP Templates</h1>
+          <p className="text-muted-foreground mt-1">Manage reusable OID configurations for device types</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="btn-technical gap-2" onClick={onRefresh} data-testid="refresh-templates-btn">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button className="btn-technical gap-2" onClick={handleAdd} data-testid="add-template-btn">
+            <Plus className="w-4 h-4" />
+            Add Template
+          </Button>
+        </div>
+      </div>
+      
+      {Object.entries(templatesByBrand).map(([brand, brandTemplates]) => (
+        <div key={brand} className="space-y-3">
+          <h2 className="text-lg font-mono font-semibold text-foreground flex items-center gap-2">
+            <div className="w-2 h-2 bg-primary" />
+            {brand}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {brandTemplates.map((template) => (
+              <Card 
+                key={template.id}
+                className="bg-card/50 border-border/30 backdrop-blur-sm card-hover"
+                data-testid={`template-card-${template.id}`}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-base font-mono">{template.name}</CardTitle>
+                      {template.description && (
+                        <CardDescription className="text-xs mt-1">{template.description}</CardDescription>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      {template.oids?.length || 0} OIDs
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 mb-4">
+                    {template.oids?.slice(0, 3).map((oid, index) => (
+                      <div key={index} className="text-xs flex items-center justify-between p-2 bg-background/50 border border-border/20">
+                        <span className="text-muted-foreground">{oid.name}</span>
+                        <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[120px]" title={oid.oid}>
+                          {oid.oid}
+                        </span>
+                      </div>
+                    ))}
+                    {(template.oids?.length || 0) > 3 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        +{template.oids.length - 3} more OIDs
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="btn-technical text-xs"
+                      onClick={() => handleEdit(template)}
+                      data-testid={`edit-template-${template.id}`}
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs hover:text-destructive"
+                      onClick={() => onDelete(template.id)}
+                      data-testid={`delete-template-${template.id}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
+      
+      {templates.length === 0 && (
+        <Card className="bg-card/50 border-border/30">
+          <CardContent className="p-8 text-center">
+            <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">No templates yet</p>
+            <Button className="mt-4 btn-technical" onClick={handleAdd}>
+              Create Your First Template
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      
+      <TemplateDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        template={editingTemplate}
+        onSave={handleSave}
+      />
+    </div>
+  );
+};
+
+// Template Dialog Component
+const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    brand: '',
+    description: '',
+    oids: []
+  });
+  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
+  
+  useEffect(() => {
+    if (template) {
+      setFormData({
+        name: template.name,
+        brand: template.brand || '',
+        description: template.description || '',
+        oids: template.oids || []
+      });
+    } else {
+      setFormData({
+        name: '',
+        brand: '',
+        description: '',
+        oids: []
+      });
+    }
+  }, [template, open]);
+  
+  const addOid = () => {
+    if (newOid.oid && newOid.name) {
+      setFormData(prev => ({
+        ...prev,
+        oids: [...prev.oids, {
+          ...newOid,
+          threshold_warning: newOid.threshold_warning ? parseFloat(newOid.threshold_warning) : null,
+          threshold_critical: newOid.threshold_critical ? parseFloat(newOid.threshold_critical) : null
+        }]
+      }));
+      setNewOid({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
+    }
+  };
+  
+  const removeOid = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      oids: prev.oids.filter((_, i) => i !== index)
+    }));
+  };
+  
+  const handleSave = () => {
+    if (!formData.name) {
+      toast.error('Please enter a template name');
+      return;
+    }
+    onSave(formData);
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="dialog-glass max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-xl">{template ? 'Edit Template' : 'Add Template'}</DialogTitle>
+          <DialogDescription>Configure SNMP OIDs for this template</DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider">Template Name *</Label>
+              <Input 
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="input-technical"
+                placeholder="e.g., Cisco Router"
+                data-testid="template-name-input"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider">Brand</Label>
+              <Input 
+                value={formData.brand}
+                onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+                className="input-technical"
+                placeholder="e.g., Cisco, Ubiquiti"
+                data-testid="template-brand-input"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider">Description</Label>
+            <Input 
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              className="input-technical"
+              placeholder="Brief description of this template"
+            />
+          </div>
+          
+          <Separator className="bg-border/30" />
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wider">OIDs ({formData.oids.length})</Label>
+              {formData.oids.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs text-destructive hover:text-destructive"
+                  onClick={() => setFormData(prev => ({ ...prev, oids: [] }))}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+            
+            <ScrollArea className="max-h-[200px]">
+              <div className="space-y-2">
+                {formData.oids.map((oid, index) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-background/50 border border-border/20">
+                    <div className="flex-1 grid grid-cols-5 gap-2 text-xs">
+                      <span className="font-mono truncate" title={oid.oid}>{oid.oid}</span>
+                      <span>{oid.name}</span>
+                      <span>{oid.unit || '-'}</span>
+                      <span className="text-amber-400">{oid.threshold_warning || '-'}</span>
+                      <span className="text-red-400">{oid.threshold_critical || '-'}</span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 hover:text-destructive"
+                      onClick={() => removeOid(index)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            
+            <div className="space-y-2 p-3 border border-dashed border-border/30">
+              <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider mb-2">Add OID</p>
+              <div className="grid grid-cols-2 gap-2">
+                <Input 
+                  value={newOid.oid}
+                  onChange={(e) => setNewOid(prev => ({ ...prev, oid: e.target.value }))}
+                  className="input-technical text-xs"
+                  placeholder="OID (e.g., 1.3.6.1.2.1.1.3.0)"
+                />
+                <Input 
+                  value={newOid.name}
+                  onChange={(e) => setNewOid(prev => ({ ...prev, name: e.target.value }))}
+                  className="input-technical text-xs"
+                  placeholder="Metric Name"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Input 
+                  value={newOid.unit}
+                  onChange={(e) => setNewOid(prev => ({ ...prev, unit: e.target.value }))}
+                  className="input-technical text-xs"
+                  placeholder="Unit (e.g., %)"
+                />
+                <Input 
+                  value={newOid.threshold_warning}
+                  onChange={(e) => setNewOid(prev => ({ ...prev, threshold_warning: e.target.value }))}
+                  className="input-technical text-xs"
+                  placeholder="Warning"
+                  type="number"
+                />
+                <Input 
+                  value={newOid.threshold_critical}
+                  onChange={(e) => setNewOid(prev => ({ ...prev, threshold_critical: e.target.value }))}
+                  className="input-technical text-xs"
+                  placeholder="Critical"
+                  type="number"
+                />
+              </div>
+              <Button variant="outline" size="sm" className="btn-technical w-full" onClick={addOid}>
+                <Plus className="w-3 h-3 mr-1" />
+                Add OID
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="btn-technical">Cancel</Button>
+          <Button onClick={handleSave} className="btn-technical bg-primary/20 hover:bg-primary/30" data-testid="save-template-dialog-btn">
+            {template ? 'Update Template' : 'Create Template'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // Device Dialog Component
 const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSave, onSaveTemplate }) => {
   const [formData, setFormData] = useState({
@@ -847,6 +1184,8 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     community_string: 'public',
     ping_enabled: true,
     snmp_enabled: true,
+    polling_interval: 300,
+    auto_poll: true,
     oids: []
   });
   const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
@@ -855,6 +1194,17 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
   const [newTemplateName, setNewTemplateName] = useState('');
   const [newTemplateBrand, setNewTemplateBrand] = useState('');
   const [newTemplateDesc, setNewTemplateDesc] = useState('');
+  
+  const pollingIntervals = [
+    { value: 30, label: '30 seconds' },
+    { value: 60, label: '1 minute' },
+    { value: 120, label: '2 minutes' },
+    { value: 300, label: '5 minutes' },
+    { value: 600, label: '10 minutes' },
+    { value: 900, label: '15 minutes' },
+    { value: 1800, label: '30 minutes' },
+    { value: 3600, label: '1 hour' },
+  ];
   
   useEffect(() => {
     if (device) {
@@ -865,6 +1215,8 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
         community_string: device.community_string || 'public',
         ping_enabled: device.ping_enabled ?? true,
         snmp_enabled: device.snmp_enabled ?? true,
+        polling_interval: device.polling_interval ?? 300,
+        auto_poll: device.auto_poll ?? true,
         oids: device.oids || []
       });
     } else {
@@ -875,8 +1227,11 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
         community_string: 'public',
         ping_enabled: true,
         snmp_enabled: true,
+        polling_interval: 300,
+        auto_poll: true,
         oids: []
       });
+    }
     }
     setSelectedTemplate('');
     setShowSaveTemplate(false);
