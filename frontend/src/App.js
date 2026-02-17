@@ -256,10 +256,16 @@ const MetricCard = ({ title, value, unit, icon: Icon, trend, color = "primary" }
 };
 
 // Pinned Graph Card Component for Dashboard
-const PinnedGraphCard = ({ graph, onUnpin }) => {
+const PinnedGraphCard = ({ graph, onUnpin, devices }) => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Get OID config for data type from devices
+  const device = devices?.find(d => d.id === graph.device_id);
+  const oidConfig = device?.oids?.find(o => o.name === graph.metric_name);
+  const dataType = oidConfig?.data_type || 'gauge';
+  const unit = getUnitLabel(dataType, oidConfig?.unit);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -281,6 +287,7 @@ const PinnedGraphCard = ({ graph, onUnpin }) => {
   }, [graph.id]);
   
   const latestValue = data.length > 0 ? data[data.length - 1].value : null;
+  const formattedValue = latestValue !== null ? formatValue(latestValue, dataType, unit) : null;
   
   return (
     <Card className="bg-card/50 border-border/30 backdrop-blur-sm card-hover">
@@ -294,8 +301,10 @@ const PinnedGraphCard = ({ graph, onUnpin }) => {
             <CardDescription className="text-xs">{graph.metric_name}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {latestValue !== null && (
-              <span className="text-lg font-bold font-mono text-primary">{latestValue.toFixed(1)}</span>
+            {formattedValue !== null && (
+              <span className="text-lg font-bold font-mono text-primary">
+                {formattedValue}{dataType !== 'bytes' && unit ? ` ${unit}` : ''}
+              </span>
             )}
             <Button
               variant="ghost"
@@ -337,7 +346,7 @@ const PinnedGraphCard = ({ graph, onUnpin }) => {
             <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
               No data
             </div>
-          )}
+          )}}
         </div>
       </CardContent>
     </Card>
