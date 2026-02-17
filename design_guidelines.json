@@ -1,0 +1,143 @@
+{
+  "identity": {
+    "persona": "E1: The Anti-AI Designer",
+    "tone": "Technical, Precision, Cybernetic, High-Contrast",
+    "mission": "Create a NOC (Network Operations Center) dashboard that feels like a futuristic command interface, not a generic admin panel.",
+    "emotional_impact": "Competence, Alertness, Control"
+  },
+  "design_system": {
+    "theme_mode": "dark",
+    "colors": {
+      "background": {
+        "base": "#020408",
+        "surface": "#090F1B",
+        "surface_highlight": "#111B2E",
+        "overlay": "rgba(9, 15, 27, 0.85)"
+      },
+      "text": {
+        "primary": "#F1F5F9",
+        "secondary": "#94A3B8",
+        "muted": "#475569",
+        "accent": "#38BDF8"
+      },
+      "brand": {
+        "primary": "#0EA5E9",
+        "secondary": "#6366F1",
+        "accent": "#10B981"
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#38BDF8"
+      },
+      "charts": {
+        "c1": "#0EA5E9",
+        "c2": "#8B5CF6",
+        "c3": "#10B981",
+        "c4": "#F59E0B",
+        "c5": "#EF4444"
+      },
+      "borders": {
+        "default": "rgba(148, 163, 184, 0.1)",
+        "active": "rgba(56, 189, 248, 0.4)",
+        "glow": "0 0 10px rgba(56, 189, 248, 0.3)"
+      }
+    },
+    "typography": {
+      "font_family": {
+        "headings": "JetBrains Mono, monospace",
+        "body": "IBM Plex Sans, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "scale": {
+        "h1": "text-4xl font-bold tracking-tight",
+        "h2": "text-3xl font-bold tracking-tight",
+        "h3": "text-2xl font-semibold tracking-tight",
+        "body": "text-sm leading-relaxed",
+        "label": "text-xs font-medium uppercase tracking-wider text-muted-foreground"
+      }
+    },
+    "radius": {
+      "default": "rounded-none",
+      "sm": "rounded-sm",
+      "lg": "rounded-md",
+      "full": "rounded-full"
+    },
+    "shadows": {
+      "card": "0 1px 2px 0 rgba(0, 0, 0, 0.5)",
+      "glow": "0 0 20px -5px rgba(14, 165, 233, 0.3)"
+    }
+  },
+  "layout_strategies": {
+    "dashboard_grid": {
+      "type": "bento",
+      "classes": "grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-4 p-4 md:p-6"
+    },
+    "containers": {
+      "card": "bg-surface border border-border/20 backdrop-blur-md relative overflow-hidden",
+      "panel": "bg-background/95 border-r border-border/20 h-full"
+    }
+  },
+  "components": {
+    "customization_rules": [
+      "Remove all default rounded-xl radii, force sharp or rounded-sm edges.",
+      "Inputs should have a transparent background with a strong bottom border or full border with low opacity.",
+      "Buttons should use the 'Technical' variant: uppercase labels, monospaced font, subtle hover glow.",
+      "Tables must use 'compact' density. Reduce padding.",
+      "Modals/Dialogs should have a 'glass' backdrop (backdrop-blur-sm) and a glowing border."
+    ],
+    "specific_overrides": {
+      "Card": "border-border/30 bg-surface/50 backdrop-blur-sm shadow-none hover:border-primary/40 transition-colors",
+      "Button": "font-mono uppercase tracking-wider text-xs font-bold rounded-none border border-primary/20 hover:bg-primary/10 hover:text-primary",
+      "Input": "bg-background/50 border-border/40 focus:border-primary/80 focus:ring-1 focus:ring-primary/30 rounded-none font-mono",
+      "Badge": "rounded-none font-mono uppercase text-[10px] tracking-widest border-0"
+    }
+  },
+  "visual_enhancers": {
+    "scanlines": "background: repeating-linear-gradient(0deg, transparent, transparent 2px, #000 3px); opacity: 0.05; pointer-events: none;",
+    "glow_effects": "box-shadow: 0 0 15px rgba(14, 165, 233, 0.15);",
+    "grid_background": "background-image: radial-gradient(rgba(56, 189, 248, 0.1) 1px, transparent 1px); background-size: 32px 32px;"
+  },
+  "assets": {
+    "icons": "Lucide React (default). Use 'Activity', 'Server', 'Wifi', 'Zap', 'AlertTriangle', 'Shield' heavily.",
+    "images": [
+      {
+        "category": "hero_background",
+        "url": "https://images.unsplash.com/photo-1680992046626-418f7e910589?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Dark server room with blue lights, suitable for login or empty states"
+      },
+      {
+        "category": "device_router",
+        "url": "https://images.unsplash.com/photo-1680992045535-95919d4971a9?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Close up of technical equipment"
+      }
+    ]
+  },
+  "motion": {
+    "presets": {
+      "fade_in": "animate-in fade-in duration-300",
+      "slide_up": "animate-in slide-in-from-bottom-4 duration-500",
+      "pulse_slow": "animate-pulse duration-[3000ms]"
+    }
+  },
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms.",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file.",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER: use AI assistant Emoji characters for icons.",
+    "All interactive and key informational elements MUST include a data-testid attribute."
+  ],
+  "instructions_to_main_agent": [
+    "Install 'recharts' for data visualization.",
+    "Use 'sonner' for notifications.",
+    "Implement a 'Scanline' overlay component for the global app layout to give it that retro-monitor feel (opacity 0.02).",
+    "For the Dashboard, use a Bento Grid layout with 'Overview' taking 2x2, 'Active Alerts' 1x2, and 'Device Status' filling the rest.",
+    "Ensure high contrast for all text. The background is very dark, so text must be very light.",
+    "Add a 'ping' animation (expanding circle) to the status indicators."
+  ]
+}
