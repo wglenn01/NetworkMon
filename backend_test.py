@@ -514,6 +514,13 @@ def main():
         tester.test_device_auto_poll_settings()
         tester.test_auto_poll_endpoint()
         
+        # NEW SCHEDULER & AUTO-RESOLUTION FUNCTIONALITY TESTS
+        tester.test_scheduler_status()
+        tester.test_devices_due_for_poll()
+        tester.test_device_last_polled_update()
+        tester.test_alert_auto_resolution()
+        tester.test_duplicate_alert_prevention()
+        
         # Seed data test
         tester.test_seed_data()
         
