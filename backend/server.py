@@ -289,7 +289,7 @@ async def get_snmp_value(ip: str, community: str, oid: str) -> Optional[Union[st
         logger.info(f"SNMP GET: {ip} community={community} oid={oid}")
         
         # Perform SNMP GET
-        error_indication, error_status, error_index, var_binds = await get_cmd(
+        error_indication, error_status, error_index, var_binds = await snmp_get_cmd(
             SnmpEngine(),
             CommunityData(community, mpModel=1),  # SNMPv2c
             UdpTransportTarget((ip, 161), timeout=5, retries=2),
