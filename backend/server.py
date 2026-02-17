@@ -786,6 +786,98 @@ async def clear_alerts(acknowledged_only: bool = True):
     result = await db.alerts.delete_many(query)
     return {"message": f"Deleted {result.deleted_count} alerts"}
 
+@api_router.get("/alerts/history/{device_id}")
+async def get_device_alert_history(device_id: str, limit: int = 50):
+    """Get alert history for a specific device (including resolved)"""
+    alerts = await db.alerts.find(
+        {"device_id": device_id}, 
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(limit)
+    for alert in alerts:
+        deserialize_datetime(alert, ['created_at', 'resolved_at'])
+    return alerts
+
+# =============== PINNED GRAPHS ===============
+
+@api_router.post("/pinned-graphs", response_model=PinnedGraph)
+async def create_pinned_graph(input: PinnedGraphCreate):
+    """Pin a graph to the dashboard"""
+    # Check if already pinned
+    existing = await db.pinned_graphs.find_one({
+        "device_id": input.device_id,
+        "metric_name": input.metric_name
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="This graph is already pinned")
+    
+    graph = PinnedGraph(**input.model_dump())
+    doc = serialize_doc(graph.model_dump())
+    await db.pinned_graphs.insert_one(doc)
+    return graph
+
+@api_router.get("/pinned-graphs", response_model=List[PinnedGraph])
+async def get_pinned_graphs():
+    """Get all pinned graphs"""
+    graphs = await db.pinned_graphs.find({}, {"_id": 0}).sort("position", 1).to_list(100)
+    for g in graphs:
+        deserialize_datetime(g, ['created_at'])
+    return graphs
+
+@api_router.delete("/pinned-graphs/{graph_id}")
+async def delete_pinned_graph(graph_id: str):
+    """Unpin a graph from dashboard"""
+    result = await db.pinned_graphs.delete_one({"id": graph_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pinned graph not found")
+    return {"message": "Graph unpinned"}
+
+@api_router.get("/pinned-graphs/{graph_id}/data")
+async def get_pinned_graph_data(graph_id: str, hours: int = 1):
+    """Get monitoring data for a pinned graph"""
+    graph = await db.pinned_graphs.find_one({"id": graph_id}, {"_id": 0})
+    if not graph:
+        raise HTTPException(status_code=404, detail="Pinned graph not found")
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    data = await db.monitoring_data.find({
+        "device_id": graph['device_id'],
+        "metric_name": graph['metric_name'],
+        "timestamp": {"$gte": cutoff.isoformat()}
+    }, {"_id": 0}).sort("timestamp", 1).to_list(1000)
+    
+    for item in data:
+        deserialize_datetime(item, ['timestamp'])
+    
+    return {
+        "graph": graph,
+        "data": data
+    }
+
+# =============== CATEGORY STATS ===============
+
+@api_router.get("/categories/stats")
+async def get_category_stats():
+    """Get device counts (online/total) per category"""
+    categories = await db.categories.find({}, {"_id": 0}).to_list(100)
+    
+    result = []
+    for cat in categories:
+        total = await db.devices.count_documents({"category_id": cat['id']})
+        online = await db.devices.count_documents({"category_id": cat['id'], "status": "online"})
+        offline = await db.devices.count_documents({"category_id": cat['id'], "status": "offline"})
+        
+        result.append({
+            "id": cat['id'],
+            "name": cat['name'],
+            "color": cat.get('color', '#0EA5E9'),
+            "icon": cat.get('icon', 'server'),
+            "total": total,
+            "online": online,
+            "offline": offline
+        })
+    
+    return result
+
 # =============== DASHBOARD STATS ===============
 
 @api_router.get("/dashboard/stats")
