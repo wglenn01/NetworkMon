@@ -28,7 +28,7 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Format value based on data type
+// Format value based on data type - returns { display, unit } for auto-scaling types
 const formatValue = (value, dataType, unit) => {
   if (value === null || value === undefined) return '-';
   if (dataType === 'text') return String(value);
@@ -38,34 +38,47 @@ const formatValue = (value, dataType, unit) => {
   
   switch (dataType) {
     case 'mbps':
-      // Value is in bps, convert to Mbps
-      return (numValue / 1000000).toFixed(2);
+      // Value is already in Mbps, auto-scale to Gbps if >= 1000
+      if (numValue >= 1000) {
+        return (numValue / 1000).toFixed(2) + ' Gbps';
+      }
+      // Show as whole number for clean display
+      return Math.round(numValue) + ' Mbps';
     case 'kbps':
-      // Value is in bps, convert to Kbps
-      return (numValue / 1000).toFixed(2);
+      // Value is already in Kbps, auto-scale to Mbps if >= 1000
+      if (numValue >= 1000) {
+        return (numValue / 1000).toFixed(2) + ' Mbps';
+      }
+      return Math.round(numValue) + ' Kbps';
     case 'bytes':
       // Auto-scale bytes
       if (numValue >= 1073741824) return (numValue / 1073741824).toFixed(2) + ' GB';
       if (numValue >= 1048576) return (numValue / 1048576).toFixed(2) + ' MB';
       if (numValue >= 1024) return (numValue / 1024).toFixed(2) + ' KB';
-      return numValue.toFixed(0) + ' B';
+      return Math.round(numValue) + ' B';
     case 'percentage':
-      return numValue.toFixed(1);
+      return numValue.toFixed(1) + '%';
     case 'counter':
+      // Counters are cumulative, show as whole number
+      return Math.round(numValue).toLocaleString();
     case 'gauge':
     default:
-      return numValue.toFixed(2);
+      // For gauge/default, show 2 decimals only if needed
+      return numValue % 1 === 0 ? Math.round(numValue).toString() : numValue.toFixed(2);
   }
 };
 
-// Get unit label based on data type
+// Check if data type includes unit in formatted value (for auto-scaling types)
+const isAutoScalingType = (dataType) => {
+  return ['mbps', 'kbps', 'bytes', 'percentage'].includes(dataType);
+};
+
+// Get unit label based on data type (only for non-auto-scaling types)
 const getUnitLabel = (dataType, unit) => {
+  // Auto-scaling types include unit in the formatted value
+  if (isAutoScalingType(dataType)) return '';
   if (unit) return unit;
   switch (dataType) {
-    case 'mbps': return 'Mbps';
-    case 'kbps': return 'Kbps';
-    case 'percentage': return '%';
-    case 'bytes': return '';
     default: return unit || '';
   }
 };
