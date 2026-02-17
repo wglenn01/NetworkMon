@@ -690,6 +690,12 @@ def main():
         tester.test_alert_auto_resolution()
         tester.test_duplicate_alert_prevention()
         
+        # NEW FEATURES BEING TESTED - Alert History, Category Stats, Pinned Graphs
+        tester.test_alert_history_endpoint()
+        tester.test_category_stats_endpoint()
+        tester.test_pinned_graphs_crud()
+        tester.test_duplicate_pinned_graph_prevention()
+        
         # Seed data test
         tester.test_seed_data()
         
