@@ -1256,7 +1256,7 @@ const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
           threshold_critical: newOid.threshold_critical ? parseFloat(newOid.threshold_critical) : null
         }]
       }));
-      setNewOid({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
+      setNewOid({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_warning: '', threshold_critical: '' });
     }
   };
   
@@ -1533,7 +1533,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
           threshold_critical: newOid.threshold_critical ? parseFloat(newOid.threshold_critical) : null
         }]
       }));
-      setNewOid({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
+      setNewOid({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_warning: '', threshold_critical: '' });
     }
   };
   
