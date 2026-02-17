@@ -1232,7 +1232,6 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
         oids: []
       });
     }
-    }
     setSelectedTemplate('');
     setShowSaveTemplate(false);
   }, [device, categories, open]);
