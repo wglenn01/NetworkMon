@@ -830,7 +830,7 @@ const AlertsPage = ({ alerts, onAcknowledge, onDelete, onClear, onRefresh }) => 
 };
 
 // Device Dialog Component
-const DeviceDialog = ({ open, onOpenChange, device, categories, onSave }) => {
+const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSave, onSaveTemplate }) => {
   const [formData, setFormData] = useState({
     name: '',
     ip_address: '',
@@ -841,6 +841,11 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, onSave }) => {
     oids: []
   });
   const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateBrand, setNewTemplateBrand] = useState('');
+  const [newTemplateDesc, setNewTemplateDesc] = useState('');
   
   useEffect(() => {
     if (device) {
@@ -864,7 +869,45 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, onSave }) => {
         oids: []
       });
     }
+    setSelectedTemplate('');
+    setShowSaveTemplate(false);
   }, [device, categories, open]);
+  
+  const applyTemplate = (templateId) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      setFormData(prev => ({
+        ...prev,
+        oids: [...template.oids]
+      }));
+      setSelectedTemplate(templateId);
+      toast.success(`Applied template: ${template.name}`);
+    }
+  };
+  
+  const handleSaveAsTemplate = async () => {
+    if (!newTemplateName) {
+      toast.error('Please enter a template name');
+      return;
+    }
+    if (formData.oids.length === 0) {
+      toast.error('Add at least one OID to save as template');
+      return;
+    }
+    
+    await onSaveTemplate({
+      name: newTemplateName,
+      brand: newTemplateBrand,
+      description: newTemplateDesc,
+      oids: formData.oids
+    });
+    
+    setShowSaveTemplate(false);
+    setNewTemplateName('');
+    setNewTemplateBrand('');
+    setNewTemplateDesc('');
+    toast.success('Template saved successfully');
+  };
   
   const addOid = () => {
     if (newOid.oid && newOid.name) {
@@ -895,6 +938,14 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, onSave }) => {
     onSave(formData);
     onOpenChange(false);
   };
+  
+  // Group templates by brand
+  const templatesByBrand = templates.reduce((acc, t) => {
+    const brand = t.brand || 'Other';
+    if (!acc[brand]) acc[brand] = [];
+    acc[brand].push(t);
+    return acc;
+  }, {});
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -980,12 +1031,120 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, onSave }) => {
           
           <Separator className="bg-border/30" />
           
+          {/* SNMP Template Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wider">SNMP Template</Label>
+              <div className="flex items-center gap-2">
+                {formData.oids.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="btn-technical text-[10px]"
+                    onClick={() => setShowSaveTemplate(!showSaveTemplate)}
+                    data-testid="save-as-template-toggle"
+                  >
+                    <Save className="w-3 h-3 mr-1" />
+                    Save as Template
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Template Selection Dropdown */}
+            <Select value={selectedTemplate} onValueChange={applyTemplate}>
+              <SelectTrigger className="input-technical" data-testid="template-select">
+                <SelectValue placeholder="Select a template to apply OIDs..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(templatesByBrand).map(([brand, brandTemplates]) => (
+                  <div key={brand}>
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-background/50">
+                      {brand}
+                    </div>
+                    {brandTemplates.map(template => (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-3 h-3 text-primary" />
+                          <span>{template.name}</span>
+                          <span className="text-xs text-muted-foreground">({template.oids?.length || 0} OIDs)</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </div>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Save as Template Form */}
+            {showSaveTemplate && (
+              <div className="p-3 border border-primary/30 bg-primary/5 space-y-3">
+                <p className="text-xs text-primary font-mono uppercase tracking-wider">Save Current OIDs as Template</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input 
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    className="input-technical text-xs"
+                    placeholder="Template Name *"
+                    data-testid="new-template-name"
+                  />
+                  <Input 
+                    value={newTemplateBrand}
+                    onChange={(e) => setNewTemplateBrand(e.target.value)}
+                    className="input-technical text-xs"
+                    placeholder="Brand (e.g., Cisco)"
+                  />
+                </div>
+                <Input 
+                  value={newTemplateDesc}
+                  onChange={(e) => setNewTemplateDesc(e.target.value)}
+                  className="input-technical text-xs"
+                  placeholder="Description (optional)"
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    className="btn-technical bg-primary/20 text-xs"
+                    onClick={handleSaveAsTemplate}
+                    data-testid="confirm-save-template"
+                  >
+                    <Check className="w-3 h-3 mr-1" />
+                    Save Template
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs"
+                    onClick={() => setShowSaveTemplate(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <Separator className="bg-border/30" />
+          
           {/* OID Configuration */}
           <div className="space-y-4">
-            <Label className="text-xs uppercase tracking-wider">Custom OIDs</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wider">Custom OIDs ({formData.oids.length})</Label>
+              {formData.oids.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs text-destructive hover:text-destructive"
+                  onClick={() => setFormData(prev => ({ ...prev, oids: [] }))}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
             
             {/* Existing OIDs */}
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {formData.oids.map((oid, index) => (
                 <div key={index} className="flex items-center gap-2 p-2 bg-background/50 border border-border/20">
                   <div className="flex-1 grid grid-cols-5 gap-2 text-xs">
@@ -1005,10 +1164,16 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, onSave }) => {
                   </Button>
                 </div>
               ))}
+              {formData.oids.length === 0 && (
+                <p className="text-center py-4 text-muted-foreground text-sm">
+                  No OIDs configured. Select a template or add manually below.
+                </p>
+              )}
             </div>
             
             {/* Add New OID */}
             <div className="space-y-2 p-3 border border-dashed border-border/30">
+              <p className="text-xs text-muted-foreground font-mono uppercase tracking-wider mb-2">Add Custom OID</p>
               <div className="grid grid-cols-2 gap-2">
                 <Input 
                   value={newOid.oid}
