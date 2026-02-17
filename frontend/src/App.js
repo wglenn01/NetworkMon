@@ -859,15 +859,24 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
       
       {/* Latest Values */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {latestData.map((metric, index) => (
-          <MetricCard
-            key={index}
-            title={metric.metric_name}
-            value={metric.value?.toFixed(2)}
-            unit={metric.unit}
-            icon={metric.metric_type === 'ping' ? Wifi : Activity}
-            color={metric.metric_type === 'ping' ? 'success' : 'primary'}
-          />
+        {latestData.map((metric, index) => {
+          // Get OID config for data type
+          const oidConfig = device.oids?.find(o => o.name === metric.metric_name);
+          const dataType = oidConfig?.data_type || 'gauge';
+          const displayUnit = getUnitLabel(dataType, metric.unit);
+          const formattedValue = formatValue(metric.value, dataType, metric.unit);
+          
+          return (
+            <MetricCard
+              key={index}
+              title={metric.metric_name}
+              value={formattedValue}
+              unit={dataType !== 'bytes' ? displayUnit : ''}
+              icon={metric.metric_type === 'ping' ? Wifi : Activity}
+              color={metric.metric_type === 'ping' ? 'success' : 'primary'}
+            />
+          );
+        })}
         ))}
       </div>
       
