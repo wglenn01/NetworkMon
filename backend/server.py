@@ -14,11 +14,17 @@ import asyncio
 import random
 import subprocess
 
-# SNMP imports
-from pysnmp.hlapi.asyncio import (
-    get_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
-    ContextData, ObjectType, ObjectIdentity
-)
+# SNMP imports - handle different pysnmp versions
+try:
+    from pysnmp.hlapi.asyncio import (
+        get_cmd as snmp_get_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
+        ContextData, ObjectType, ObjectIdentity
+    )
+except ImportError:
+    from pysnmp.hlapi.asyncio import (
+        getCmd as snmp_get_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
+        ContextData, ObjectType, ObjectIdentity
+    )
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
