@@ -241,3 +241,11 @@
         display: contents !important;
     }
 }
+
+/* Hide external badges */
+[class*="emergent"],
+[id*="emergent"],
+a[href*="emergent.sh"],
+div[style*="Made with"] {
+    display: none !important;
+}
