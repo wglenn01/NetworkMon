@@ -2005,7 +2005,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
                   data-testid="new-oid-name-input"
                 />
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <Select value={newOid.data_type} onValueChange={(v) => setNewOid(prev => ({ ...prev, data_type: v }))}>
                   <SelectTrigger className="input-technical text-xs">
                     <SelectValue placeholder="Data Type" />
@@ -2022,18 +2022,29 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
                   className="input-technical text-xs"
                   placeholder="Unit"
                 />
+                <Select value={newOid.threshold_operator} onValueChange={(v) => setNewOid(prev => ({ ...prev, threshold_operator: v }))}>
+                  <SelectTrigger className="input-technical text-xs">
+                    <SelectValue placeholder="Operator" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gt">&gt; Greater than</SelectItem>
+                    <SelectItem value="lt">&lt; Less than</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <Input 
                   value={newOid.threshold_warning}
                   onChange={(e) => setNewOid(prev => ({ ...prev, threshold_warning: e.target.value }))}
                   className="input-technical text-xs"
-                  placeholder="Warning"
+                  placeholder="Warning Threshold"
                   type="number"
                 />
                 <Input 
                   value={newOid.threshold_critical}
                   onChange={(e) => setNewOid(prev => ({ ...prev, threshold_critical: e.target.value }))}
                   className="input-technical text-xs"
-                  placeholder="Critical"
+                  placeholder="Critical Threshold"
                   type="number"
                 />
               </div>
