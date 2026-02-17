@@ -106,10 +106,10 @@ const Sidebar = ({ categories, activeCategory, setActiveCategory, onAddCategory,
             {categories.map((cat) => {
               const IconComponent = iconMap[cat.icon] || Server;
               return (
-                <button
+                <div
                   key={cat.id}
                   onClick={() => { setActiveCategory(cat.id); navigate('/devices'); }}
-                  className={`sidebar-item w-full flex items-center justify-between px-3 py-2 text-sm group ${activeCategory === cat.id ? 'active' : ''}`}
+                  className={`sidebar-item w-full flex items-center justify-between px-3 py-2 text-sm group cursor-pointer ${activeCategory === cat.id ? 'active' : ''}`}
                   data-testid={`category-${cat.name.toLowerCase()}`}
                 >
                   <div className="flex items-center gap-3">
@@ -124,7 +124,7 @@ const Sidebar = ({ categories, activeCategory, setActiveCategory, onAddCategory,
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
-                </button>
+                </div>
               );
             })}
           </div>
