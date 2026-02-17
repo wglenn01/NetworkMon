@@ -192,6 +192,100 @@ class NetworkMonitoringAPITester:
         """Test seeding sample data"""
         return self.run_test("Seed Data", "POST", "seed", 200)
 
+    def test_get_templates(self):
+        """Test getting all SNMP templates"""
+        return self.run_test("Get SNMP Templates", "GET", "templates", 200)
+
+    def test_create_template(self):
+        """Test creating a new SNMP template"""
+        template_data = {
+            "name": "Test Generic Device",
+            "description": "Basic test template",
+            "brand": "Generic",
+            "oids": [
+                {
+                    "oid": "1.3.6.1.2.1.1.3.0",
+                    "name": "Test Uptime",
+                    "unit": "s",
+                    "threshold_warning": None,
+                    "threshold_critical": None
+                },
+                {
+                    "oid": "1.3.6.1.2.1.2.2.1.10.1",
+                    "name": "Test Interface In",
+                    "unit": "bps",
+                    "threshold_warning": 80000000.0,
+                    "threshold_critical": 90000000.0
+                }
+            ]
+        }
+        success, response = self.run_test("Create SNMP Template", "POST", "templates", 200, template_data)
+        if success and 'id' in response:
+            self.template_ids.append(response['id'])
+        return success, response
+
+    def test_get_template_by_id(self):
+        """Test getting a specific SNMP template"""
+        if not self.template_ids:
+            self.test_create_template()
+        
+        if not self.template_ids:
+            print("❌ Cannot get template without template ID")
+            return False, {}
+
+        template_id = self.template_ids[0]
+        return self.run_test(f"Get Template {template_id}", "GET", f"templates/{template_id}", 200)
+
+    def test_update_template(self):
+        """Test updating an SNMP template"""
+        if not self.template_ids:
+            self.test_create_template()
+        
+        if not self.template_ids:
+            print("❌ Cannot update template without template ID")
+            return False, {}
+
+        template_id = self.template_ids[0]
+        update_data = {
+            "name": "Test Generic Device Updated",
+            "description": "Updated test template description"
+        }
+        return self.run_test(f"Update Template {template_id}", "PUT", f"templates/{template_id}", 200, update_data)
+
+    def test_device_auto_poll_settings(self):
+        """Test device auto polling configuration (polling_interval and auto_poll fields)"""
+        if not self.device_ids:
+            self.test_create_device()
+        
+        if not self.device_ids:
+            print("❌ Cannot test auto poll without device ID")
+            return False, {}
+
+        device_id = self.device_ids[0]
+        # Test updating device with different polling intervals
+        for interval, label in [(30, "30s"), (60, "1min"), (300, "5min"), (900, "15min"), (3600, "1hr")]:
+            update_data = {
+                "polling_interval": interval,
+                "auto_poll": True
+            }
+            success, response = self.run_test(f"Set Device Auto Poll {label}", "PUT", f"devices/{device_id}", 200, update_data)
+            if success:
+                # Verify the fields were updated correctly
+                if response.get('polling_interval') != interval:
+                    print(f"❌ Polling interval not set correctly: expected {interval}, got {response.get('polling_interval')}")
+                    return False, {}
+                if response.get('auto_poll') != True:
+                    print(f"❌ Auto poll not set correctly: expected True, got {response.get('auto_poll')}")
+                    return False, {}
+            else:
+                return False, {}
+        
+        return True, {}
+
+    def test_auto_poll_endpoint(self):
+        """Test the auto polling endpoint"""
+        return self.run_test("Auto Poll Due Devices", "POST", "monitoring/auto-poll", 200)
+
     def cleanup_test_data(self):
         """Clean up test data"""
         print("\n🧹 Cleaning up test data...")
