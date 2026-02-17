@@ -2045,6 +2045,8 @@ function App() {
       setStats(statsRes.data);
       setTemplates(templateRes.data);
       setSchedulerStatus(schedulerRes.data);
+      setCategoryStats(catStatsRes.data);
+      setPinnedGraphs(pinnedRes.data);
       
       // Show toast for new unacknowledged alerts
       const newAlerts = alertRes.data.filter(a => !a.acknowledged);
