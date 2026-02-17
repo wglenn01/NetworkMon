@@ -1992,6 +1992,14 @@ function App() {
                 onRefresh={fetchData}
               />
             } />
+            <Route path="/templates" element={
+              <TemplatesPage 
+                templates={templates}
+                onSave={handleSaveTemplate}
+                onDelete={handleDeleteTemplate}
+                onRefresh={fetchData}
+              />
+            } />
           </Routes>
         </MainLayout>
         
