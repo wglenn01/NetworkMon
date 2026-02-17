@@ -1023,8 +1023,8 @@ async def seed_data():
             "polling_interval": 60,
             "auto_poll": True,
             "oids": [
-                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
-                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "unit": "%", "threshold_warning": 75, "threshold_critical": 95},
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "data_type": "percentage", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "unit": "%", "data_type": "percentage", "threshold_warning": 75, "threshold_critical": 95},
             ],
             "status": "online"
         },
@@ -1036,9 +1036,9 @@ async def seed_data():
             "polling_interval": 120,
             "auto_poll": True,
             "oids": [
-                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
-                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "unit": "bps"},
-                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "unit": "bps"},
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "data_type": "percentage", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "data_type": "mbps"},
+                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "data_type": "mbps"},
             ],
             "status": "online"
         },
@@ -1050,7 +1050,7 @@ async def seed_data():
             "polling_interval": 300,
             "auto_poll": True,
             "oids": [
-                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 60, "threshold_critical": 80},
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "data_type": "percentage", "threshold_warning": 60, "threshold_critical": 80},
             ],
             "status": "online"
         },
@@ -1062,7 +1062,7 @@ async def seed_data():
             "polling_interval": 300,
             "auto_poll": True,
             "oids": [
-                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%"},
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "data_type": "percentage"},
             ],
             "status": "warning"
         },
@@ -1074,8 +1074,8 @@ async def seed_data():
             "polling_interval": 60,
             "auto_poll": True,
             "oids": [
-                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Traffic In", "unit": "Mbps"},
-                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Traffic Out", "unit": "Mbps"},
+                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Traffic In", "data_type": "mbps"},
+                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Traffic Out", "data_type": "mbps"},
             ],
             "status": "online"
         },
