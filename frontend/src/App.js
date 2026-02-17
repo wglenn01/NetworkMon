@@ -1580,7 +1580,9 @@ function App() {
           onOpenChange={setDeviceDialogOpen}
           device={editingDevice}
           categories={categories}
+          templates={templates}
           onSave={handleSaveDevice}
+          onSaveTemplate={handleSaveTemplate}
         />
         
         <CategoryDialog 
