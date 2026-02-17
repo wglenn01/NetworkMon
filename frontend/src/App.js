@@ -582,9 +582,17 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
 // Device List Component
 const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDevice, onDeleteDevice }) => {
   const navigate = useNavigate();
-  const filteredDevices = activeCategory && activeCategory !== 'all' 
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Filter by category first, then by search query
+  const filteredDevices = (activeCategory && activeCategory !== 'all' 
     ? devices.filter(d => d.category_id === activeCategory)
-    : devices;
+    : devices
+  ).filter(d => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return d.name.toLowerCase().includes(query) || d.ip_address.toLowerCase().includes(query);
+  });
   
   return (
     <div className="space-y-6 animate-fade-in" data-testid="device-list">
@@ -597,11 +605,38 @@ const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDe
               : 'All monitored devices'}
           </p>
         </div>
-        <Button className="btn-technical gap-2" onClick={onAddDevice} data-testid="add-device-btn">
-          <Plus className="w-4 h-4" />
-          Add Device
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name or IP..."
+              className="input-technical pl-9 w-64"
+              data-testid="device-search-input"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+          <Button className="btn-technical gap-2" onClick={onAddDevice} data-testid="add-device-btn">
+            <Plus className="w-4 h-4" />
+            Add Device
+          </Button>
+        </div>
       </div>
+      
+      {/* Show search results count when searching */}
+      {searchQuery && (
+        <div className="text-sm text-muted-foreground">
+          Found {filteredDevices.length} device{filteredDevices.length !== 1 ? 's' : ''} matching "{searchQuery}"
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredDevices.map((device) => {
