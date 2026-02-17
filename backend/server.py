@@ -603,6 +603,66 @@ async def seed_data():
     await db.devices.delete_many({})
     await db.monitoring_data.delete_many({})
     await db.alerts.delete_many({})
+    await db.snmp_templates.delete_many({})
+    
+    # Create SNMP templates
+    templates_data = [
+        {
+            "name": "Cisco Router",
+            "description": "Standard OIDs for Cisco IOS routers",
+            "brand": "Cisco",
+            "oids": [
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "unit": "%", "threshold_warning": 75, "threshold_critical": 95},
+                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "unit": "bps"},
+                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "unit": "bps"},
+            ]
+        },
+        {
+            "name": "Cisco Switch",
+            "description": "Standard OIDs for Cisco Catalyst switches",
+            "brand": "Cisco",
+            "oids": [
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 60, "threshold_critical": 80},
+                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
+            ]
+        },
+        {
+            "name": "Ubiquiti Radio",
+            "description": "Standard OIDs for Ubiquiti airMAX radios",
+            "brand": "Ubiquiti",
+            "oids": [
+                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.4.1", "name": "Signal Strength", "unit": "dBm", "threshold_warning": -75, "threshold_critical": -85},
+                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.6.1", "name": "TX Rate", "unit": "Mbps"},
+                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.7.1", "name": "RX Rate", "unit": "Mbps"},
+                {"oid": "1.3.6.1.4.1.41112.1.4.5.1.5.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
+            ]
+        },
+        {
+            "name": "Mikrotik Router",
+            "description": "Standard OIDs for Mikrotik RouterOS devices",
+            "brand": "Mikrotik",
+            "oids": [
+                {"oid": "1.3.6.1.2.1.25.3.3.1.2.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.2.1.25.2.3.1.6.65536", "name": "Memory Used", "unit": "bytes"},
+                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "unit": "bps"},
+                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "unit": "bps"},
+            ]
+        },
+        {
+            "name": "Generic Device",
+            "description": "Basic SNMP OIDs for any device",
+            "brand": "Generic",
+            "oids": [
+                {"oid": "1.3.6.1.2.1.1.3.0", "name": "Uptime", "unit": "s"},
+                {"oid": "1.3.6.1.2.1.1.5.0", "name": "Hostname", "unit": ""},
+            ]
+        }
+    ]
+    
+    for t_data in templates_data:
+        template = SNMPTemplate(**t_data)
+        await db.snmp_templates.insert_one(serialize_doc(template.model_dump()))
     
     # Create categories
     categories_data = [
