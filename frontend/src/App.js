@@ -346,7 +346,7 @@ const PinnedGraphCard = ({ graph, onUnpin, devices }) => {
             <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
               No data
             </div>
-          )}}
+          )}
         </div>
       </CardContent>
     </Card>
