@@ -386,6 +386,26 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
         />
       </div>
       
+      {/* Pinned Graphs */}
+      {pinnedGraphs && pinnedGraphs.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Pin className="w-4 h-4 text-primary" />
+            <h2 className="text-lg font-mono font-semibold text-foreground">Pinned Graphs</h2>
+            <span className="text-xs text-muted-foreground">({pinnedGraphs.length})</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {pinnedGraphs.map(graph => (
+              <PinnedGraphCard 
+                key={graph.id} 
+                graph={graph} 
+                onUnpin={onUnpinGraph}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Device Status */}
