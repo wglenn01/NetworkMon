@@ -246,6 +246,17 @@
 [class*="emergent"],
 [id*="emergent"],
 a[href*="emergent.sh"],
-div[style*="Made with"] {
+div[style*="Made with"],
+iframe[src*="emergent"],
+div:has(> a[href*="emergent"]) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Target the fixed position badge at bottom right */
+body > div[style*="position: fixed"][style*="bottom"],
+body > div[style*="position:fixed"][style*="bottom"] {
     display: none !important;
 }
