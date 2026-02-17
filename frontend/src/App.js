@@ -1898,9 +1898,10 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {formData.oids.map((oid, index) => (
                 <div key={index} className="flex items-center gap-2 p-2 bg-background/50 border border-border/20">
-                  <div className="flex-1 grid grid-cols-5 gap-2 text-xs">
+                  <div className="flex-1 grid grid-cols-6 gap-2 text-xs">
                     <span className="font-mono truncate" title={oid.oid}>{oid.oid}</span>
                     <span>{oid.name}</span>
+                    <span className="text-primary capitalize">{oid.data_type || 'gauge'}</span>
                     <span>{oid.unit || '-'}</span>
                     <span className="text-amber-400">{oid.threshold_warning || '-'}</span>
                     <span className="text-red-400">{oid.threshold_critical || '-'}</span>
