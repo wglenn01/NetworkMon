@@ -659,17 +659,21 @@ async def poll_single_device(device: dict):
     for resolve_criteria in alerts_to_resolve:
         query = {
             "device_id": resolve_criteria["device_id"],
-            "acknowledged": False  # Only auto-resolve unacknowledged alerts
+            "acknowledged": False,  # Only auto-resolve unacknowledged alerts
+            "resolved": False  # Only resolve non-resolved alerts
         }
         if "alert_type" in resolve_criteria:
             query["alert_type"] = resolve_criteria["alert_type"]
         if "metric_name" in resolve_criteria:
             query["metric_name"] = resolve_criteria["metric_name"]
         
-        # Delete the resolved alerts
-        result = await db.alerts.delete_many(query)
-        if result.deleted_count > 0:
-            logger.info(f"Auto-resolved {result.deleted_count} alert(s) for device {device_name}")
+        # Mark alerts as resolved instead of deleting (keeps history)
+        result = await db.alerts.update_many(
+            query,
+            {"$set": {"resolved": True, "resolved_at": now.isoformat()}}
+        )
+        if result.modified_count > 0:
+            logger.info(f"Auto-resolved {result.modified_count} alert(s) for device {device_name}")
     
     # Create new alerts (but avoid duplicates within short time window)
     for alert_create in alerts_to_create:
