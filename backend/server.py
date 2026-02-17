@@ -282,6 +282,48 @@ async def get_snmp_value(ip: str, community: str, oid: str) -> Optional[float]:
 async def root():
     return {"message": "NetGraph Hub API - Network Monitoring Tool"}
 
+@api_router.get("/scheduler/status")
+async def get_scheduler_status():
+    """Get the status of the auto-poll scheduler"""
+    global scheduler_task
+    is_running = scheduler_task is not None and not scheduler_task.done()
+    
+    # Count devices with auto-poll enabled
+    auto_poll_count = await db.devices.count_documents({"auto_poll": True})
+    
+    # Get next device due for poll
+    now = datetime.now(timezone.utc)
+    devices = await db.devices.find({"auto_poll": True}, {"_id": 0, "name": 1, "polling_interval": 1, "last_polled": 1}).to_list(100)
+    
+    next_poll_device = None
+    min_seconds_until_poll = float('inf')
+    
+    for device in devices:
+        interval = device.get('polling_interval', 300)
+        last_polled = device.get('last_polled')
+        
+        if last_polled is None:
+            next_poll_device = device['name']
+            min_seconds_until_poll = 0
+            break
+        else:
+            if isinstance(last_polled, str):
+                last_polled = datetime.fromisoformat(last_polled)
+            seconds_since_poll = (now - last_polled).total_seconds()
+            seconds_until_poll = interval - seconds_since_poll
+            
+            if seconds_until_poll < min_seconds_until_poll:
+                min_seconds_until_poll = seconds_until_poll
+                next_poll_device = device['name']
+    
+    return {
+        "scheduler_running": is_running,
+        "check_interval_seconds": SCHEDULER_INTERVAL,
+        "auto_poll_enabled_devices": auto_poll_count,
+        "next_device_to_poll": next_poll_device,
+        "seconds_until_next_poll": max(0, min_seconds_until_poll) if min_seconds_until_poll != float('inf') else None
+    }
+
 @api_router.post("/categories", response_model=Category)
 async def create_category(input: CategoryCreate):
     category = Category(**input.model_dump())
