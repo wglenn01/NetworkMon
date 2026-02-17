@@ -225,8 +225,97 @@ const MetricCard = ({ title, value, unit, icon: Icon, trend, color = "primary" }
   );
 };
 
+// Pinned Graph Card Component for Dashboard
+const PinnedGraphCard = ({ graph, onUnpin }) => {
+  const navigate = useNavigate();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`${API}/pinned-graphs/${graph.id}/data?hours=1`);
+        setData(res.data.data.map(d => ({
+          time: new Date(d.timestamp).toLocaleTimeString(),
+          value: d.value
+        })));
+      } catch (err) {
+        console.error('Failed to fetch pinned graph data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [graph.id]);
+  
+  const latestValue = data.length > 0 ? data[data.length - 1].value : null;
+  
+  return (
+    <Card className="bg-card/50 border-border/30 backdrop-blur-sm card-hover">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div 
+            className="cursor-pointer"
+            onClick={() => navigate(`/device/${graph.device_id}`)}
+          >
+            <CardTitle className="text-sm font-mono hover:text-primary">{graph.device_name}</CardTitle>
+            <CardDescription className="text-xs">{graph.metric_name}</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            {latestValue !== null && (
+              <span className="text-lg font-bold font-mono text-primary">{latestValue.toFixed(1)}</span>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 hover:text-destructive"
+              onClick={() => onUnpin(graph.id)}
+              data-testid={`unpin-graph-${graph.id}`}
+            >
+              <PinOff className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="h-[120px]">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : data.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data}>
+                <defs>
+                  <linearGradient id={`gradient-${graph.id}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={graph.metric_type === 'ping' ? '#10B981' : '#0EA5E9'} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={graph.metric_type === 'ping' ? '#10B981' : '#0EA5E9'} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke={graph.metric_type === 'ping' ? '#10B981' : '#0EA5E9'}
+                  fill={`url(#gradient-${graph.id})`}
+                  strokeWidth={1.5}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
+              No data
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 // Dashboard Component
-const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus }) => {
+const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinnedGraphs, onUnpinGraph }) => {
   const navigate = useNavigate();
   
   const formatTimeAgo = (dateStr) => {
