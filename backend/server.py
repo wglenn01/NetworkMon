@@ -673,10 +673,19 @@ async def poll_single_device(device: dict):
                     # Check thresholds
                     threshold_warning = oid_config.get('threshold_warning') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_warning', None)
                     threshold_critical = oid_config.get('threshold_critical') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_critical', None)
+                    threshold_operator = oid_config.get('threshold_operator', 'gt') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_operator', 'gt')
                     
-                    # Determine current metric status
-                    metric_exceeds_critical = threshold_critical and value >= threshold_critical
-                    metric_exceeds_warning = threshold_warning and value >= threshold_warning
+                    # Determine current metric status based on operator
+                    # gt = greater than (alert when value > threshold)
+                    # lt = less than (alert when value < threshold)
+                    if threshold_operator == 'lt':
+                        metric_exceeds_critical = threshold_critical is not None and value <= threshold_critical
+                        metric_exceeds_warning = threshold_warning is not None and value <= threshold_warning
+                        op_symbol = "<"
+                    else:  # gt (default)
+                        metric_exceeds_critical = threshold_critical is not None and value >= threshold_critical
+                        metric_exceeds_warning = threshold_warning is not None and value >= threshold_warning
+                        op_symbol = ">"
                     
                     if metric_exceeds_critical:
                         alerts_to_create.append(AlertCreate(
