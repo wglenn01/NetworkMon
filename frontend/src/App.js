@@ -1872,12 +1872,28 @@ function App() {
   };
   
   // Template handlers
-  const handleSaveTemplate = async (data) => {
+  const handleSaveTemplate = async (data, templateId = null) => {
     try {
-      await axios.post(`${API}/templates`, data);
+      if (templateId) {
+        await axios.put(`${API}/templates/${templateId}`, data);
+        toast.success('Template updated');
+      } else {
+        await axios.post(`${API}/templates`, data);
+        toast.success('Template created');
+      }
       fetchData();
     } catch (err) {
       toast.error('Failed to save template');
+    }
+  };
+  
+  const handleDeleteTemplate = async (id) => {
+    try {
+      await axios.delete(`${API}/templates/${id}`);
+      toast.success('Template deleted');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to delete template');
     }
   };
   
