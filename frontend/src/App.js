@@ -1373,22 +1373,63 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
           </div>
           
           {/* Monitoring Options */}
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <Switch 
-                checked={formData.ping_enabled}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, ping_enabled: v }))}
-                data-testid="ping-enabled-switch"
-              />
-              <Label className="text-sm">Ping Monitoring</Label>
+          <div className="space-y-4">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3">
+                <Switch 
+                  checked={formData.ping_enabled}
+                  onCheckedChange={(v) => setFormData(prev => ({ ...prev, ping_enabled: v }))}
+                  data-testid="ping-enabled-switch"
+                />
+                <Label className="text-sm">Ping Monitoring</Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch 
+                  checked={formData.snmp_enabled}
+                  onCheckedChange={(v) => setFormData(prev => ({ ...prev, snmp_enabled: v }))}
+                  data-testid="snmp-enabled-switch"
+                />
+                <Label className="text-sm">SNMP Monitoring</Label>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Switch 
-                checked={formData.snmp_enabled}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, snmp_enabled: v }))}
-                data-testid="snmp-enabled-switch"
-              />
-              <Label className="text-sm">SNMP Monitoring</Label>
+            
+            {/* Auto Polling Configuration */}
+            <div className="p-3 border border-border/30 bg-background/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Switch 
+                    checked={formData.auto_poll}
+                    onCheckedChange={(v) => setFormData(prev => ({ ...prev, auto_poll: v }))}
+                    data-testid="auto-poll-switch"
+                  />
+                  <Label className="text-sm">Auto Polling</Label>
+                </div>
+                {formData.auto_poll && (
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">Interval:</Label>
+                    <Select 
+                      value={String(formData.polling_interval)} 
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, polling_interval: parseInt(v) }))}
+                    >
+                      <SelectTrigger className="input-technical w-32 h-8 text-xs" data-testid="polling-interval-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pollingIntervals.map(interval => (
+                          <SelectItem key={interval.value} value={String(interval.value)}>
+                            {interval.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              {formData.auto_poll && (
+                <p className="text-xs text-muted-foreground">
+                  Device will be automatically polled every {pollingIntervals.find(i => i.value === formData.polling_interval)?.label || '5 minutes'}
+                </p>
+              )}
             </div>
           </div>
           
