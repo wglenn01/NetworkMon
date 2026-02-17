@@ -753,6 +753,7 @@ async def auto_poll_due_devices(background_tasks: BackgroundTasks):
 async def get_alerts(
     device_id: Optional[str] = None,
     acknowledged: Optional[bool] = None,
+    include_resolved: bool = False,
     hours: int = 24
 ):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
@@ -761,10 +762,12 @@ async def get_alerts(
         query["device_id"] = device_id
     if acknowledged is not None:
         query["acknowledged"] = acknowledged
+    if not include_resolved:
+        query["resolved"] = {"$ne": True}
     
     alerts = await db.alerts.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     for alert in alerts:
-        deserialize_datetime(alert, ['created_at'])
+        deserialize_datetime(alert, ['created_at', 'resolved_at'])
     return alerts
 
 @api_router.put("/alerts/{alert_id}/acknowledge")
