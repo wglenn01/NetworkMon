@@ -308,7 +308,14 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus }) => {
                       <div className={`device-status ${device.status}`} />
                       <div>
                         <p className="font-medium text-sm text-foreground">{device.name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{device.ip_address}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground font-mono">{device.ip_address}</p>
+                          {device.last_polled && (
+                            <span className="text-[10px] text-muted-foreground">
+                              • polled {formatTimeAgo(device.last_polled)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
