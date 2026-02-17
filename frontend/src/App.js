@@ -537,25 +537,28 @@ const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDe
 };
 
 // Device Detail Component
-const DeviceDetail = ({ categories }) => {
+const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) => {
   const { deviceId } = useParams();
   const navigate = useNavigate();
   const [device, setDevice] = useState(null);
   const [monitoringData, setMonitoringData] = useState([]);
   const [latestData, setLatestData] = useState([]);
+  const [alertHistory, setAlertHistory] = useState([]);
   const [timeRange, setTimeRange] = useState("24");
   const [loading, setLoading] = useState(true);
   
   const fetchData = useCallback(async () => {
     try {
-      const [deviceRes, monitoringRes, latestRes] = await Promise.all([
+      const [deviceRes, monitoringRes, latestRes, alertsRes] = await Promise.all([
         axios.get(`${API}/devices/${deviceId}`),
         axios.get(`${API}/monitoring/${deviceId}?hours=${timeRange}`),
-        axios.get(`${API}/monitoring/${deviceId}/latest`)
+        axios.get(`${API}/monitoring/${deviceId}/latest`),
+        axios.get(`${API}/alerts/history/${deviceId}?limit=20`)
       ]);
       setDevice(deviceRes.data);
       setMonitoringData(monitoringRes.data);
       setLatestData(latestRes.data);
+      setAlertHistory(alertsRes.data);
     } catch (err) {
       console.error(err);
       toast.error('Failed to load device data');
@@ -569,6 +572,24 @@ const DeviceDetail = ({ categories }) => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
+  
+  const isGraphPinned = (metricName) => {
+    return pinnedGraphs?.some(g => g.device_id === deviceId && g.metric_name === metricName);
+  };
+  
+  const handlePinToggle = async (metricType, metricName) => {
+    const existing = pinnedGraphs?.find(g => g.device_id === deviceId && g.metric_name === metricName);
+    if (existing) {
+      await onUnpinGraph(existing.id);
+    } else {
+      await onPinGraph({
+        device_id: deviceId,
+        device_name: device.name,
+        metric_type: metricType,
+        metric_name: metricName
+      });
+    }
+  };
   
   if (loading) {
     return (
@@ -679,8 +700,18 @@ const DeviceDetail = ({ categories }) => {
         
         <TabsContent value="ping">
           <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-mono">Response Time (ms)</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`btn-technical text-xs ${isGraphPinned('Response Time') ? 'text-primary' : ''}`}
+                onClick={() => handlePinToggle('ping', 'Response Time')}
+                data-testid="pin-ping-graph"
+              >
+                {isGraphPinned('Response Time') ? <PinOff className="w-3 h-3 mr-1" /> : <Pin className="w-3 h-3 mr-1" />}
+                {isGraphPinned('Response Time') ? 'Unpin' : 'Pin to Dashboard'}
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -719,8 +750,18 @@ const DeviceDetail = ({ categories }) => {
         {Object.entries(snmpMetrics).map(([name, data]) => (
           <TabsContent key={name} value={name}>
             <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-mono">{name}</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`btn-technical text-xs ${isGraphPinned(name) ? 'text-primary' : ''}`}
+                  onClick={() => handlePinToggle('snmp', name)}
+                  data-testid={`pin-${name}-graph`}
+                >
+                  {isGraphPinned(name) ? <PinOff className="w-3 h-3 mr-1" /> : <Pin className="w-3 h-3 mr-1" />}
+                  {isGraphPinned(name) ? 'Unpin' : 'Pin to Dashboard'}
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
@@ -751,6 +792,63 @@ const DeviceDetail = ({ categories }) => {
           </TabsContent>
         ))}
       </Tabs>
+      
+      {/* Alert History */}
+      <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <History className="w-5 h-5 text-primary" />
+            <CardTitle className="text-lg font-mono">Alert History</CardTitle>
+          </div>
+          <CardDescription>Recent alerts for this device</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[250px]">
+            <div className="space-y-2">
+              {alertHistory.map((alert) => (
+                <div 
+                  key={alert.id}
+                  className={`flex items-center justify-between p-3 border border-border/20 ${
+                    alert.resolved ? 'bg-background/30 opacity-60' : 
+                    alert.alert_type.includes('critical') || alert.alert_type === 'device_down' ? 'bg-red-500/5 border-l-2 border-l-red-500' :
+                    alert.alert_type.includes('warning') ? 'bg-amber-500/5 border-l-2 border-l-amber-500' :
+                    'bg-primary/5 border-l-2 border-l-primary'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{alert.metric_name}</span>
+                      <Badge variant="outline" className="font-mono text-[9px]">
+                        {alert.alert_type.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                      {alert.resolved && (
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border-0 font-mono text-[9px]">
+                          RESOLVED
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{alert.message}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground font-mono">
+                      <span>{new Date(alert.created_at).toLocaleString()}</span>
+                      {alert.resolved_at && (
+                        <span className="text-emerald-400">
+                          Resolved: {new Date(alert.resolved_at).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {alertHistory.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Shield className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No alert history for this device</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
       
       {/* OID Configuration */}
       <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
