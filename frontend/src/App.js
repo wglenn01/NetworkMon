@@ -2160,6 +2160,31 @@ function App() {
     }
   };
   
+  // Pinned graph handlers
+  const handlePinGraph = async (data) => {
+    try {
+      await axios.post(`${API}/pinned-graphs`, data);
+      toast.success('Graph pinned to dashboard');
+      fetchData();
+    } catch (err) {
+      if (err.response?.status === 400) {
+        toast.error('This graph is already pinned');
+      } else {
+        toast.error('Failed to pin graph');
+      }
+    }
+  };
+  
+  const handleUnpinGraph = async (id) => {
+    try {
+      await axios.delete(`${API}/pinned-graphs/${id}`);
+      toast.success('Graph unpinned');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to unpin graph');
+    }
+  };
+  
   // Alert handlers
   const handleAcknowledgeAlert = async (id) => {
     try {
