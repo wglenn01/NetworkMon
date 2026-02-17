@@ -316,7 +316,7 @@ const PinnedGraphCard = ({ graph, onUnpin, devices }) => {
           <div className="flex items-center gap-2">
             {formattedValue !== null && (
               <span className="text-lg font-bold font-mono text-primary">
-                {formattedValue}{dataType !== 'bytes' && unit ? ` ${unit}` : ''}
+                {formattedValue}{!isAutoScalingType(dataType) && unit ? ` ${unit}` : ''}
               </span>
             )}
             <Button
