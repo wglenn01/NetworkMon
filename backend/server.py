@@ -947,10 +947,10 @@ async def seed_data():
             "description": "Standard OIDs for Cisco IOS routers",
             "brand": "Cisco",
             "oids": [
-                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
-                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "unit": "%", "threshold_warning": 75, "threshold_critical": 95},
-                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "unit": "bps"},
-                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "unit": "bps"},
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "data_type": "percentage", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "data_type": "percentage", "threshold_warning": 75, "threshold_critical": 95},
+                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "data_type": "mbps"},
+                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "data_type": "mbps"},
             ]
         },
         {
@@ -958,8 +958,8 @@ async def seed_data():
             "description": "Standard OIDs for Cisco Catalyst switches",
             "brand": "Cisco",
             "oids": [
-                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 60, "threshold_critical": 80},
-                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.4.1.9.9.109.1.1.1.1.3.1", "name": "CPU Usage", "data_type": "percentage", "threshold_warning": 60, "threshold_critical": 80},
+                {"oid": "1.3.6.1.4.1.9.9.48.1.1.1.5.1", "name": "Memory Usage", "data_type": "percentage", "threshold_warning": 70, "threshold_critical": 90},
             ]
         },
         {
@@ -967,10 +967,10 @@ async def seed_data():
             "description": "Standard OIDs for Ubiquiti airMAX radios",
             "brand": "Ubiquiti",
             "oids": [
-                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.4.1", "name": "Signal Strength", "unit": "dBm", "threshold_warning": -75, "threshold_critical": -85},
-                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.6.1", "name": "TX Rate", "unit": "Mbps"},
-                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.7.1", "name": "RX Rate", "unit": "Mbps"},
-                {"oid": "1.3.6.1.4.1.41112.1.4.5.1.5.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.4.1", "name": "Signal Strength", "unit": "dBm", "data_type": "gauge", "threshold_warning": -75, "threshold_critical": -85},
+                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.6.1", "name": "TX Rate", "data_type": "mbps"},
+                {"oid": "1.3.6.1.4.1.41112.1.4.1.1.7.1", "name": "RX Rate", "data_type": "mbps"},
+                {"oid": "1.3.6.1.4.1.41112.1.4.5.1.5.1", "name": "CPU Usage", "data_type": "percentage", "threshold_warning": 70, "threshold_critical": 90},
             ]
         },
         {
@@ -978,10 +978,10 @@ async def seed_data():
             "description": "Standard OIDs for Mikrotik RouterOS devices",
             "brand": "Mikrotik",
             "oids": [
-                {"oid": "1.3.6.1.2.1.25.3.3.1.2.1", "name": "CPU Usage", "unit": "%", "threshold_warning": 70, "threshold_critical": 90},
-                {"oid": "1.3.6.1.2.1.25.2.3.1.6.65536", "name": "Memory Used", "unit": "bytes"},
-                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "unit": "bps"},
-                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "unit": "bps"},
+                {"oid": "1.3.6.1.2.1.25.3.3.1.2.1", "name": "CPU Usage", "data_type": "percentage", "threshold_warning": 70, "threshold_critical": 90},
+                {"oid": "1.3.6.1.2.1.25.2.3.1.6.65536", "name": "Memory Used", "data_type": "bytes"},
+                {"oid": "1.3.6.1.2.1.2.2.1.10.1", "name": "Interface In", "data_type": "mbps"},
+                {"oid": "1.3.6.1.2.1.2.2.1.16.1", "name": "Interface Out", "data_type": "mbps"},
             ]
         },
         {
@@ -989,8 +989,8 @@ async def seed_data():
             "description": "Basic SNMP OIDs for any device",
             "brand": "Generic",
             "oids": [
-                {"oid": "1.3.6.1.2.1.1.3.0", "name": "Uptime", "unit": "s"},
-                {"oid": "1.3.6.1.2.1.1.5.0", "name": "Hostname", "unit": ""},
+                {"oid": "1.3.6.1.2.1.1.3.0", "name": "Uptime", "unit": "s", "data_type": "counter"},
+                {"oid": "1.3.6.1.2.1.1.5.0", "name": "Hostname", "data_type": "text"},
             ]
         }
     ]
