@@ -436,6 +436,175 @@ class NetworkMonitoringAPITester:
         print("✅ Duplicate prevention test completed - backend handles multiple polls correctly")
         return True, alerts_after
 
+    def test_alert_history_endpoint(self):
+        """Test alert history endpoint for specific device"""
+        if not self.device_ids:
+            self.test_create_device()
+        
+        if not self.device_ids:
+            print("❌ Cannot test alert history without device ID")
+            return False, {}
+
+        device_id = self.device_ids[0]
+        # Test alert history endpoint
+        success, response = self.run_test(f"Get Alert History {device_id}", "GET", f"alerts/history/{device_id}", 200)
+        
+        if success:
+            # Verify response is a list
+            if not isinstance(response, list):
+                print(f"❌ Alert history should return a list, got {type(response)}")
+                return False, {}
+            
+            print(f"✅ Alert history returned {len(response)} alerts")
+            # Check if any resolved alerts have resolved_at timestamp
+            for alert in response:
+                if alert.get('resolved') and 'resolved_at' in alert:
+                    print(f"✅ Found resolved alert with resolved_at timestamp: {alert['resolved_at']}")
+                    break
+        
+        return success, response
+
+    def test_category_stats_endpoint(self):
+        """Test category statistics endpoint"""
+        success, response = self.run_test("Get Category Stats", "GET", "categories/stats", 200)
+        
+        if success:
+            # Verify response is a list
+            if not isinstance(response, list):
+                print(f"❌ Category stats should return a list, got {type(response)}")
+                return False, {}
+            
+            # Check each category has required fields
+            required_fields = ['id', 'name', 'total', 'online', 'offline']
+            for category_stat in response:
+                for field in required_fields:
+                    if field not in category_stat:
+                        print(f"❌ Category stat missing required field: {field}")
+                        return False, {}
+                
+                # Verify counts are numbers
+                if not isinstance(category_stat['total'], int) or not isinstance(category_stat['online'], int) or not isinstance(category_stat['offline'], int):
+                    print(f"❌ Category stat counts should be integers")
+                    return False, {}
+                
+                print(f"✅ Category {category_stat['name']}: {category_stat['online']}/{category_stat['offline']} (online/offline)")
+        
+        return success, response
+
+    def test_pinned_graphs_crud(self):
+        """Test pinned graphs CRUD operations"""
+        if not self.device_ids:
+            self.test_create_device()
+        
+        if not self.device_ids:
+            print("❌ Cannot test pinned graphs without device ID")
+            return False, {}
+
+        device_id = self.device_ids[0]
+        
+        # Test GET all pinned graphs
+        success_get, response_get = self.run_test("Get Pinned Graphs", "GET", "pinned-graphs", 200)
+        if not success_get:
+            return False, {}
+        
+        initial_count = len(response_get)
+        
+        # Test CREATE pinned graph
+        pin_data = {
+            "device_id": device_id,
+            "device_name": "Test Device",
+            "metric_type": "ping",
+            "metric_name": "Response Time",
+            "position": 0
+        }
+        success_create, response_create = self.run_test("Create Pinned Graph", "POST", "pinned-graphs", 200, pin_data)
+        if not success_create:
+            return False, {}
+        
+        graph_id = response_create.get('id')
+        if not graph_id:
+            print("❌ Created pinned graph should have an ID")
+            return False, {}
+        
+        # Test GET single pinned graph data
+        success_data, response_data = self.run_test(f"Get Pinned Graph Data {graph_id}", "GET", f"pinned-graphs/{graph_id}/data", 200)
+        if not success_data:
+            return False, {}
+        
+        # Verify response has graph and data fields
+        if 'graph' not in response_data or 'data' not in response_data:
+            print("❌ Pinned graph data should have 'graph' and 'data' fields")
+            return False, {}
+        
+        # Test GET all pinned graphs after creation
+        success_get_after, response_get_after = self.run_test("Get Pinned Graphs After Create", "GET", "pinned-graphs", 200)
+        if not success_get_after:
+            return False, {}
+        
+        if len(response_get_after) != initial_count + 1:
+            print(f"❌ Expected {initial_count + 1} pinned graphs, got {len(response_get_after)}")
+            return False, {}
+        
+        # Test DELETE pinned graph
+        success_delete, response_delete = self.run_test(f"Delete Pinned Graph {graph_id}", "DELETE", f"pinned-graphs/{graph_id}", 200)
+        if not success_delete:
+            return False, {}
+        
+        # Verify deletion
+        success_get_final, response_get_final = self.run_test("Get Pinned Graphs After Delete", "GET", "pinned-graphs", 200)
+        if not success_get_final:
+            return False, {}
+        
+        if len(response_get_final) != initial_count:
+            print(f"❌ Expected {initial_count} pinned graphs after delete, got {len(response_get_final)}")
+            return False, {}
+        
+        print("✅ Pinned graphs CRUD operations all working correctly")
+        return True, {}
+
+    def test_duplicate_pinned_graph_prevention(self):
+        """Test that duplicate pinned graphs are prevented"""
+        if not self.device_ids:
+            self.test_create_device()
+        
+        if not self.device_ids:
+            print("❌ Cannot test duplicate pinned graphs without device ID")
+            return False, {}
+
+        device_id = self.device_ids[0]
+        
+        pin_data = {
+            "device_id": device_id,
+            "device_name": "Test Device",
+            "metric_type": "ping", 
+            "metric_name": "Response Time",
+            "position": 0
+        }
+        
+        # Create first pinned graph
+        success_first, response_first = self.run_test("Create First Pinned Graph", "POST", "pinned-graphs", 200, pin_data)
+        if not success_first:
+            return False, {}
+        
+        graph_id = response_first.get('id')
+        
+        # Try to create duplicate
+        success_duplicate, response_duplicate = self.run_test("Create Duplicate Pinned Graph", "POST", "pinned-graphs", 400, pin_data)
+        
+        if success_duplicate:
+            print("❌ Expected 400 error for duplicate pinned graph, but got success")
+            # Cleanup the first graph
+            requests.delete(f"{self.api_url}/pinned-graphs/{graph_id}")
+            return False, {}
+        
+        # Cleanup the first graph
+        success_cleanup, _ = self.run_test(f"Cleanup Pinned Graph {graph_id}", "DELETE", f"pinned-graphs/{graph_id}", 200)
+        if not success_cleanup:
+            print(f"⚠️  Warning: Could not cleanup pinned graph {graph_id}")
+        
+        print("✅ Duplicate pinned graph prevention working correctly")
+        return True, {}
+
     def cleanup_test_data(self):
         """Clean up test data"""
         print("\n🧹 Cleaning up test data...")
