@@ -277,29 +277,50 @@ async def ping_host(ip: str) -> Optional[float]:
         logger.error(f"Ping error for {ip}: {e}")
         return None
 
-async def get_snmp_value(ip: str, community: str, oid: str) -> Optional[float]:
-    """Simulate SNMP value retrieval - in production, use pysnmp"""
-    # For demo purposes, generate realistic values based on OID
+async def get_snmp_value(ip: str, community: str, oid: str) -> Optional[Union[str, float, int]]:
+    """Perform actual SNMP GET request to retrieve OID value"""
     try:
-        # Simulate network delay
-        await asyncio.sleep(0.1)
+        # Perform SNMP GET
+        error_indication, error_status, error_index, var_binds = await get_cmd(
+            SnmpEngine(),
+            CommunityData(community, mpModel=1),  # SNMPv2c
+            await UdpTransportTarget.create((ip, 161), timeout=5, retries=2),
+            ContextData(),
+            ObjectType(ObjectIdentity(oid))
+        )
         
-        # Generate realistic values based on common OID patterns
-        if '1.3.6.1.2.1.2.2.1.10' in oid:  # Interface inbound octets
-            return random.uniform(1000000, 50000000)
-        elif '1.3.6.1.2.1.2.2.1.16' in oid:  # Interface outbound octets
-            return random.uniform(500000, 30000000)
-        elif '1.3.6.1.4.1.9.9.109.1.1.1.1.3' in oid:  # CPU utilization (Cisco)
-            return random.uniform(10, 85)
-        elif '1.3.6.1.4.1.9.9.48.1.1.1.5' in oid:  # Memory used (Cisco)
-            return random.uniform(40, 90)
-        elif '1.3.6.1.2.1.1.3' in oid:  # System uptime
-            return random.uniform(100000, 10000000)
+        if error_indication:
+            logger.warning(f"SNMP error for {ip} OID {oid}: {error_indication}")
+            return None
+        elif error_status:
+            logger.warning(f"SNMP error for {ip} OID {oid}: {error_status.prettyPrint()} at {error_index}")
+            return None
         else:
-            # Generic value for unknown OIDs
-            return random.uniform(0, 100)
+            for var_bind in var_binds:
+                # Get the raw value
+                raw_value = var_bind[1]
+                value_str = raw_value.prettyPrint()
+                
+                # Try to parse as number first
+                try:
+                    # Handle Counter, Gauge, Integer types
+                    if hasattr(raw_value, 'hasValue') and raw_value.hasValue():
+                        # Check if it's a numeric type
+                        int_val = int(raw_value)
+                        return float(int_val)
+                except (ValueError, TypeError):
+                    pass
+                
+                # Try parsing the string representation as a number
+                try:
+                    return float(value_str)
+                except ValueError:
+                    # Return as string for text values
+                    return value_str
+                    
+        return None
     except Exception as e:
-        logger.error(f"SNMP error for {ip} OID {oid}: {e}")
+        logger.error(f"SNMP exception for {ip} OID {oid}: {e}")
         return None
 
 # =============== CATEGORY ENDPOINTS ===============
