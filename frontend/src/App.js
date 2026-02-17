@@ -1429,7 +1429,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     auto_poll: true,
     oids: []
   });
-  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
+  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_warning: '', threshold_critical: '' });
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
@@ -1445,6 +1445,16 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     { value: 900, label: '15 minutes' },
     { value: 1800, label: '30 minutes' },
     { value: 3600, label: '1 hour' },
+  ];
+  
+  const dataTypes = [
+    { value: 'gauge', label: 'Gauge (number)' },
+    { value: 'counter', label: 'Counter (cumulative)' },
+    { value: 'mbps', label: 'Mbps (megabits/sec)' },
+    { value: 'kbps', label: 'Kbps (kilobits/sec)' },
+    { value: 'bytes', label: 'Bytes (auto-scale)' },
+    { value: 'percentage', label: 'Percentage (%)' },
+    { value: 'text', label: 'Text (no graph)' },
   ];
   
   useEffect(() => {
