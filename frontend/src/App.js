@@ -28,6 +28,48 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Format value based on data type
+const formatValue = (value, dataType, unit) => {
+  if (value === null || value === undefined) return '-';
+  if (dataType === 'text') return String(value);
+  
+  const numValue = parseFloat(value);
+  if (isNaN(numValue)) return String(value);
+  
+  switch (dataType) {
+    case 'mbps':
+      // Value is in bps, convert to Mbps
+      return (numValue / 1000000).toFixed(2);
+    case 'kbps':
+      // Value is in bps, convert to Kbps
+      return (numValue / 1000).toFixed(2);
+    case 'bytes':
+      // Auto-scale bytes
+      if (numValue >= 1073741824) return (numValue / 1073741824).toFixed(2) + ' GB';
+      if (numValue >= 1048576) return (numValue / 1048576).toFixed(2) + ' MB';
+      if (numValue >= 1024) return (numValue / 1024).toFixed(2) + ' KB';
+      return numValue.toFixed(0) + ' B';
+    case 'percentage':
+      return numValue.toFixed(1);
+    case 'counter':
+    case 'gauge':
+    default:
+      return numValue.toFixed(2);
+  }
+};
+
+// Get unit label based on data type
+const getUnitLabel = (dataType, unit) => {
+  if (unit) return unit;
+  switch (dataType) {
+    case 'mbps': return 'Mbps';
+    case 'kbps': return 'Kbps';
+    case 'percentage': return '%';
+    case 'bytes': return '';
+    default: return unit || '';
+  }
+};
+
 // Icon mapping
 const iconMap = {
   router: Router,
