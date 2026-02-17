@@ -1340,7 +1340,7 @@ const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
     description: '',
     oids: []
   });
-  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_warning: '', threshold_critical: '' });
+  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_operator: 'gt', threshold_warning: '', threshold_critical: '' });
   
   const dataTypes = [
     { value: 'gauge', label: 'Gauge (number)' },
@@ -1576,7 +1576,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     auto_poll: true,
     oids: []
   });
-  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_warning: '', threshold_critical: '' });
+  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_operator: 'gt', threshold_warning: '', threshold_critical: '' });
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
