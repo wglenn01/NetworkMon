@@ -654,6 +654,7 @@ async def poll_single_device(device: dict):
             
             value = await get_snmp_value(ip, community, oid)
             if value is not None:
+                snmp_success = True  # At least one SNMP query worked
                 data = MonitoringData(
                     device_id=device_id,
                     metric_type="snmp",
@@ -703,6 +704,14 @@ async def poll_single_device(device: dict):
                             "metric_name": name,
                             "alert_type": {"$in": ["threshold_warning", "threshold_critical"]}
                         })
+        
+        # If SNMP succeeded but ping failed, mark device as online (some devices block ICMP)
+        if snmp_success and not device_online:
+            await db.devices.update_one(
+                {"id": device_id},
+                {"$set": {"status": "online", "last_seen": now.isoformat()}}
+            )
+            logger.info(f"Device {device_name} responding to SNMP but not ping - marking online")
     
     # Auto-resolve alerts that are no longer applicable
     for resolve_criteria in alerts_to_resolve:
