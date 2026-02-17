@@ -183,7 +183,7 @@ class MonitoringData(BaseModel):
     device_id: str
     metric_type: str  # ping, snmp
     metric_name: str
-    value: float
+    value: Union[float, str, int]  # Support numeric and text values
     unit: str = ""
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
