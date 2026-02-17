@@ -2001,6 +2001,7 @@ function App() {
                 alerts={alerts} 
                 devices={devices}
                 categories={categories}
+                schedulerStatus={schedulerStatus}
               />
             } />
             <Route path="/devices" element={
