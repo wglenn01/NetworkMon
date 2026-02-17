@@ -438,6 +438,7 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
               <PinnedGraphCard 
                 key={graph.id} 
                 graph={graph} 
+                devices={devices}
                 onUnpin={onUnpinGraph}
               />
             ))}
