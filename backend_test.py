@@ -301,6 +301,17 @@ class NetworkMonitoringAPITester:
             except Exception as e:
                 print(f"❌ Error deleting device {device_id}: {e}")
         
+        # Delete test templates
+        for template_id in self.template_ids:
+            try:
+                response = requests.delete(f"{self.api_url}/templates/{template_id}")
+                if response.status_code == 200:
+                    print(f"✅ Deleted test template {template_id}")
+                else:
+                    print(f"❌ Failed to delete template {template_id}: {response.status_code}")
+            except Exception as e:
+                print(f"❌ Error deleting template {template_id}: {e}")
+        
         # Delete test categories
         for category_id in self.category_ids:
             try:
