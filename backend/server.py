@@ -122,6 +122,7 @@ class OIDConfig(BaseModel):
     data_type: str = "gauge"  # gauge, counter, mbps, kbps, bytes, percentage, text
     threshold_warning: Optional[float] = None
     threshold_critical: Optional[float] = None
+    threshold_operator: str = "gt"  # gt (greater than), lt (less than)
 
 class SNMPTemplate(BaseModel):
     model_config = ConfigDict(extra="ignore")
