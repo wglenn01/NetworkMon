@@ -85,6 +85,15 @@ const Sidebar = ({ categories, activeCategory, setActiveCategory, onAddCategory,
             <AlertTriangle className="w-4 h-4 text-muted-foreground" />
             <span className="text-foreground">Alerts</span>
           </button>
+          
+          <button
+            onClick={() => navigate('/templates')}
+            className="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 text-sm"
+            data-testid="nav-templates"
+          >
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <span className="text-foreground">SNMP Templates</span>
+          </button>
         </div>
         
         <Separator className="my-4 bg-border/20" />
