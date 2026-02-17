@@ -40,8 +40,14 @@ const iconMap = {
 };
 
 // Sidebar Component
-const Sidebar = ({ categories, activeCategory, setActiveCategory, onAddCategory, onDeleteCategory }) => {
+const Sidebar = ({ categories, categoryStats, activeCategory, setActiveCategory, onAddCategory, onDeleteCategory }) => {
   const navigate = useNavigate();
+  
+  // Merge category info with stats
+  const getCategoryStats = (catId) => {
+    const stats = categoryStats?.find(s => s.id === catId);
+    return stats || { online: 0, offline: 0, total: 0 };
+  };
   
   return (
     <div className="sidebar w-64 h-screen fixed left-0 top-0 flex flex-col" data-testid="sidebar">
@@ -115,6 +121,7 @@ const Sidebar = ({ categories, activeCategory, setActiveCategory, onAddCategory,
           <div className="space-y-1">
             {categories.map((cat) => {
               const IconComponent = iconMap[cat.icon] || Server;
+              const stats = getCategoryStats(cat.id);
               return (
                 <div
                   key={cat.id}
@@ -127,13 +134,22 @@ const Sidebar = ({ categories, activeCategory, setActiveCategory, onAddCategory,
                     <IconComponent className="w-4 h-4 text-muted-foreground" />
                     <span className="text-foreground">{cat.name}</span>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDeleteCategory(cat.id); }}
-                    className="opacity-0 group-hover:opacity-100 hover:text-destructive"
-                    data-testid={`delete-category-${cat.name.toLowerCase()}`}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {stats.total > 0 && (
+                      <span className="text-[10px] font-mono">
+                        <span className="text-emerald-400">{stats.online}</span>
+                        <span className="text-muted-foreground">/</span>
+                        <span className={stats.offline > 0 ? "text-red-400" : "text-muted-foreground"}>{stats.offline}</span>
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteCategory(cat.id); }}
+                      className="opacity-0 group-hover:opacity-100 hover:text-destructive"
+                      data-testid={`delete-category-${cat.name.toLowerCase()}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
