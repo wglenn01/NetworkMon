@@ -43,10 +43,6 @@
         @apply border-border;
     }
     
-    html {
-        @apply dark;
-    }
-    
     body {
         @apply bg-background text-foreground;
         font-family: 'IBM Plex Sans', sans-serif;
