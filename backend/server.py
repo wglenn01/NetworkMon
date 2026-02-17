@@ -15,8 +15,8 @@ import random
 import subprocess
 
 # SNMP imports
-from pysnmp.hlapi.v3arch.asyncio import (
-    get_cmd, SnmpEngine, CommunityData, UdpTransportTarget,
+from pysnmp.hlapi.asyncio import (
+    getCmd, SnmpEngine, CommunityData, UdpTransportTarget,
     ContextData, ObjectType, ObjectIdentity
 )
 
