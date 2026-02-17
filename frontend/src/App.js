@@ -1322,7 +1322,17 @@ const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
     description: '',
     oids: []
   });
-  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', threshold_warning: '', threshold_critical: '' });
+  const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_warning: '', threshold_critical: '' });
+  
+  const dataTypes = [
+    { value: 'gauge', label: 'Gauge (number)' },
+    { value: 'counter', label: 'Counter (cumulative)' },
+    { value: 'mbps', label: 'Mbps (megabits/sec)' },
+    { value: 'kbps', label: 'Kbps (kilobits/sec)' },
+    { value: 'bytes', label: 'Bytes (auto-scale)' },
+    { value: 'percentage', label: 'Percentage (%)' },
+    { value: 'text', label: 'Text (no graph)' },
+  ];
   
   useEffect(() => {
     if (template) {
