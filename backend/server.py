@@ -644,44 +644,46 @@ async def poll_single_device(device: dict):
                 )
                 await db.monitoring_data.insert_one(serialize_doc(data.model_dump()))
                 
-                # Check thresholds
-                threshold_warning = oid_config.get('threshold_warning') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_warning', None)
-                threshold_critical = oid_config.get('threshold_critical') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_critical', None)
-                
-                # Determine current metric status
-                metric_exceeds_critical = threshold_critical and value >= threshold_critical
-                metric_exceeds_warning = threshold_warning and value >= threshold_warning
-                
-                if metric_exceeds_critical:
-                    alerts_to_create.append(AlertCreate(
-                        device_id=device_id,
-                        device_name=device_name,
-                        alert_type="threshold_critical",
-                        metric_name=name,
-                        message=f"{name} on {device_name} is critical: {value:.2f}{unit} (threshold: {threshold_critical}{unit})",
-                        value=value,
-                        threshold=threshold_critical
-                    ))
-                    metrics_status[name] = "critical"
-                elif metric_exceeds_warning:
-                    alerts_to_create.append(AlertCreate(
-                        device_id=device_id,
-                        device_name=device_name,
-                        alert_type="threshold_warning",
-                        metric_name=name,
-                        message=f"{name} on {device_name} is warning: {value:.2f}{unit} (threshold: {threshold_warning}{unit})",
-                        value=value,
-                        threshold=threshold_warning
-                    ))
-                    metrics_status[name] = "warning"
-                else:
-                    # Metric is now within normal range - resolve related alerts
-                    metrics_status[name] = "normal"
-                    alerts_to_resolve.append({
-                        "device_id": device_id,
-                        "metric_name": name,
-                        "alert_type": {"$in": ["threshold_warning", "threshold_critical"]}
-                    })
+                # Only check thresholds for numeric values
+                if isinstance(value, (int, float)):
+                    # Check thresholds
+                    threshold_warning = oid_config.get('threshold_warning') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_warning', None)
+                    threshold_critical = oid_config.get('threshold_critical') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_critical', None)
+                    
+                    # Determine current metric status
+                    metric_exceeds_critical = threshold_critical and value >= threshold_critical
+                    metric_exceeds_warning = threshold_warning and value >= threshold_warning
+                    
+                    if metric_exceeds_critical:
+                        alerts_to_create.append(AlertCreate(
+                            device_id=device_id,
+                            device_name=device_name,
+                            alert_type="threshold_critical",
+                            metric_name=name,
+                            message=f"{name} on {device_name} is critical: {value:.2f}{unit} (threshold: {threshold_critical}{unit})",
+                            value=value,
+                            threshold=threshold_critical
+                        ))
+                        metrics_status[name] = "critical"
+                    elif metric_exceeds_warning:
+                        alerts_to_create.append(AlertCreate(
+                            device_id=device_id,
+                            device_name=device_name,
+                            alert_type="threshold_warning",
+                            metric_name=name,
+                            message=f"{name} on {device_name} is warning: {value:.2f}{unit} (threshold: {threshold_warning}{unit})",
+                            value=value,
+                            threshold=threshold_warning
+                        ))
+                        metrics_status[name] = "warning"
+                    else:
+                        # Metric is now within normal range - resolve related alerts
+                        metrics_status[name] = "normal"
+                        alerts_to_resolve.append({
+                            "device_id": device_id,
+                            "metric_name": name,
+                            "alert_type": {"$in": ["threshold_warning", "threshold_critical"]}
+                        })
     
     # Auto-resolve alerts that are no longer applicable
     for resolve_criteria in alerts_to_resolve:
