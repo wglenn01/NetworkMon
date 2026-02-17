@@ -643,9 +643,10 @@ async def poll_single_device(device: dict):
         # If ping is disabled, assume device is reachable for SNMP
         device_online = True
     
-    # SNMP if enabled and device appears online
-    if device.get('snmp_enabled', True) and device.get('oids') and device_online:
+    # SNMP if enabled - attempt even if ping failed (some devices block ICMP but allow SNMP)
+    if device.get('snmp_enabled', True) and device.get('oids'):
         community = device.get('community_string', 'public')
+        snmp_success = False  # Track if at least one SNMP query succeeds
         for oid_config in device.get('oids', []):
             oid = oid_config.get('oid') if isinstance(oid_config, dict) else oid_config.oid
             name = oid_config.get('name') if isinstance(oid_config, dict) else oid_config.name
