@@ -2244,6 +2244,7 @@ function App() {
       <BrowserRouter>
         <MainLayout 
           categories={categories}
+          categoryStats={categoryStats}
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
           onAddCategory={handleAddCategory}
@@ -2257,6 +2258,8 @@ function App() {
                 devices={devices}
                 categories={categories}
                 schedulerStatus={schedulerStatus}
+                pinnedGraphs={pinnedGraphs}
+                onUnpinGraph={handleUnpinGraph}
               />
             } />
             <Route path="/devices" element={
@@ -2270,7 +2273,12 @@ function App() {
               />
             } />
             <Route path="/device/:deviceId" element={
-              <DeviceDetail categories={categories} />
+              <DeviceDetail 
+                categories={categories}
+                pinnedGraphs={pinnedGraphs}
+                onPinGraph={handlePinGraph}
+                onUnpinGraph={handleUnpinGraph}
+              />
             } />
             <Route path="/alerts" element={
               <AlertsPage 
