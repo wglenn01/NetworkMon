@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -21,9 +22,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app
-app = FastAPI()
-api_router = APIRouter(prefix="/api")
+# Background scheduler state
+scheduler_task = None
+SCHEDULER_INTERVAL = 30  # Check every 30 seconds for devices due for polling
 
 # Configure logging
 logging.basicConfig(
@@ -31,6 +32,59 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+async def auto_poll_scheduler():
+    """Background task that continuously checks and polls devices based on their intervals"""
+    logger.info("Auto-poll scheduler started")
+    while True:
+        try:
+            await asyncio.sleep(SCHEDULER_INTERVAL)
+            now = datetime.now(timezone.utc)
+            
+            # Find devices due for polling
+            devices = await db.devices.find({"auto_poll": True}, {"_id": 0}).to_list(1000)
+            
+            for device in devices:
+                interval = device.get('polling_interval', 300)
+                last_polled = device.get('last_polled')
+                
+                should_poll = False
+                if last_polled is None:
+                    should_poll = True
+                else:
+                    if isinstance(last_polled, str):
+                        last_polled = datetime.fromisoformat(last_polled)
+                    if (now - last_polled).total_seconds() >= interval:
+                        should_poll = True
+                
+                if should_poll:
+                    logger.info(f"Auto-polling device: {device['name']}")
+                    asyncio.create_task(poll_single_device(device))
+                    
+        except Exception as e:
+            logger.error(f"Error in auto-poll scheduler: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifecycle - start/stop background scheduler"""
+    global scheduler_task
+    # Startup
+    scheduler_task = asyncio.create_task(auto_poll_scheduler())
+    logger.info("Application startup complete - scheduler running")
+    yield
+    # Shutdown
+    if scheduler_task:
+        scheduler_task.cancel()
+        try:
+            await scheduler_task
+        except asyncio.CancelledError:
+            pass
+    client.close()
+    logger.info("Application shutdown complete")
+
+# Create the main app with lifespan
+app = FastAPI(lifespan=lifespan)
+api_router = APIRouter(prefix="/api")
 
 # =============== MODELS ===============
 
