@@ -87,9 +87,12 @@ class Device(BaseModel):
     oids: List[OIDConfig] = []
     ping_enabled: bool = True
     snmp_enabled: bool = True
+    polling_interval: int = 300  # seconds (default 5 minutes)
+    auto_poll: bool = True
     status: str = "unknown"  # online, offline, warning, unknown
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_seen: Optional[datetime] = None
+    last_polled: Optional[datetime] = None
 
 class DeviceCreate(BaseModel):
     name: str
@@ -99,6 +102,8 @@ class DeviceCreate(BaseModel):
     oids: List[OIDConfig] = []
     ping_enabled: bool = True
     snmp_enabled: bool = True
+    polling_interval: int = 300
+    auto_poll: bool = True
 
 class DeviceUpdate(BaseModel):
     name: Optional[str] = None
@@ -108,6 +113,8 @@ class DeviceUpdate(BaseModel):
     oids: Optional[List[OIDConfig]] = None
     ping_enabled: Optional[bool] = None
     snmp_enabled: Optional[bool] = None
+    polling_interval: Optional[int] = None
+    auto_poll: Optional[bool] = None
 
 class MonitoringData(BaseModel):
     model_config = ConfigDict(extra="ignore")
