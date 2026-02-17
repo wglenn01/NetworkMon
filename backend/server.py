@@ -472,11 +472,14 @@ async def poll_device(device_id: str, background_tasks: BackgroundTasks):
     return {"message": "Polling started"}
 
 async def poll_single_device(device: dict):
-    """Poll a single device for metrics"""
+    """Poll a single device for metrics with auto-resolution of alerts"""
     device_id = device['id']
     ip = device['ip_address']
+    device_name = device['name']
     now = datetime.now(timezone.utc)
     alerts_to_create = []
+    alerts_to_resolve = []  # Track which alerts should be auto-resolved
+    metrics_status = {}  # Track current status of each metric
     
     # Update last_polled timestamp
     await db.devices.update_one(
@@ -485,9 +488,11 @@ async def poll_single_device(device: dict):
     )
     
     # Ping if enabled
+    device_online = False
     if device.get('ping_enabled', True):
         ping_result = await ping_host(ip)
         if ping_result is not None:
+            device_online = True
             # Store ping data
             data = MonitoringData(
                 device_id=device_id,
@@ -498,11 +503,20 @@ async def poll_single_device(device: dict):
             )
             await db.monitoring_data.insert_one(serialize_doc(data.model_dump()))
             
-            # Update device status to online
+            # Device is back online - resolve device_down alerts
+            previous_status = device.get('status')
             await db.devices.update_one(
                 {"id": device_id},
                 {"$set": {"status": "online", "last_seen": now.isoformat()}}
             )
+            
+            # If device was previously offline, mark device_down alerts for resolution
+            if previous_status == 'offline':
+                alerts_to_resolve.append({
+                    "device_id": device_id,
+                    "alert_type": "device_down"
+                })
+                logger.info(f"Device {device_name} is back online - resolving device_down alerts")
         else:
             # Device unreachable
             current_status = device.get('status')
@@ -513,14 +527,17 @@ async def poll_single_device(device: dict):
                 )
                 alerts_to_create.append(AlertCreate(
                     device_id=device_id,
-                    device_name=device['name'],
+                    device_name=device_name,
                     alert_type="device_down",
                     metric_name="Ping",
-                    message=f"Device {device['name']} ({ip}) is unreachable"
+                    message=f"Device {device_name} ({ip}) is unreachable"
                 ))
+    else:
+        # If ping is disabled, assume device is reachable for SNMP
+        device_online = True
     
-    # SNMP if enabled
-    if device.get('snmp_enabled', True) and device.get('oids'):
+    # SNMP if enabled and device appears online
+    if device.get('snmp_enabled', True) and device.get('oids') and device_online:
         community = device.get('community_string', 'public')
         for oid_config in device.get('oids', []):
             oid = oid_config.get('oid') if isinstance(oid_config, dict) else oid_config.oid
@@ -542,31 +559,73 @@ async def poll_single_device(device: dict):
                 threshold_warning = oid_config.get('threshold_warning') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_warning', None)
                 threshold_critical = oid_config.get('threshold_critical') if isinstance(oid_config, dict) else getattr(oid_config, 'threshold_critical', None)
                 
-                if threshold_critical and value >= threshold_critical:
+                # Determine current metric status
+                metric_exceeds_critical = threshold_critical and value >= threshold_critical
+                metric_exceeds_warning = threshold_warning and value >= threshold_warning
+                
+                if metric_exceeds_critical:
                     alerts_to_create.append(AlertCreate(
                         device_id=device_id,
-                        device_name=device['name'],
+                        device_name=device_name,
                         alert_type="threshold_critical",
                         metric_name=name,
-                        message=f"{name} on {device['name']} is critical: {value:.2f}{unit} (threshold: {threshold_critical}{unit})",
+                        message=f"{name} on {device_name} is critical: {value:.2f}{unit} (threshold: {threshold_critical}{unit})",
                         value=value,
                         threshold=threshold_critical
                     ))
-                elif threshold_warning and value >= threshold_warning:
+                    metrics_status[name] = "critical"
+                elif metric_exceeds_warning:
                     alerts_to_create.append(AlertCreate(
                         device_id=device_id,
-                        device_name=device['name'],
+                        device_name=device_name,
                         alert_type="threshold_warning",
                         metric_name=name,
-                        message=f"{name} on {device['name']} is warning: {value:.2f}{unit} (threshold: {threshold_warning}{unit})",
+                        message=f"{name} on {device_name} is warning: {value:.2f}{unit} (threshold: {threshold_warning}{unit})",
                         value=value,
                         threshold=threshold_warning
                     ))
+                    metrics_status[name] = "warning"
+                else:
+                    # Metric is now within normal range - resolve related alerts
+                    metrics_status[name] = "normal"
+                    alerts_to_resolve.append({
+                        "device_id": device_id,
+                        "metric_name": name,
+                        "alert_type": {"$in": ["threshold_warning", "threshold_critical"]}
+                    })
     
-    # Create alerts
+    # Auto-resolve alerts that are no longer applicable
+    for resolve_criteria in alerts_to_resolve:
+        query = {
+            "device_id": resolve_criteria["device_id"],
+            "acknowledged": False  # Only auto-resolve unacknowledged alerts
+        }
+        if "alert_type" in resolve_criteria:
+            query["alert_type"] = resolve_criteria["alert_type"]
+        if "metric_name" in resolve_criteria:
+            query["metric_name"] = resolve_criteria["metric_name"]
+        
+        # Delete the resolved alerts
+        result = await db.alerts.delete_many(query)
+        if result.deleted_count > 0:
+            logger.info(f"Auto-resolved {result.deleted_count} alert(s) for device {device_name}")
+    
+    # Create new alerts (but avoid duplicates within short time window)
     for alert_create in alerts_to_create:
-        alert = Alert(**alert_create.model_dump())
-        await db.alerts.insert_one(serialize_doc(alert.model_dump()))
+        # Check if similar alert exists in last 5 minutes
+        recent_cutoff = (now - timedelta(minutes=5)).isoformat()
+        existing = await db.alerts.find_one({
+            "device_id": alert_create.device_id,
+            "alert_type": alert_create.alert_type,
+            "metric_name": alert_create.metric_name,
+            "acknowledged": False,
+            "created_at": {"$gte": recent_cutoff}
+        })
+        
+        if not existing:
+            alert = Alert(**alert_create.model_dump())
+            await db.alerts.insert_one(serialize_doc(alert.model_dump()))
+            logger.info(f"Created alert: {alert_create.message}")
 
 @api_router.post("/monitoring/poll-all")
 async def poll_all_devices(background_tasks: BackgroundTasks):
