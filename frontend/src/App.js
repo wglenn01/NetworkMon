@@ -232,7 +232,7 @@ const StatusBadge = ({ status }) => {
 };
 
 // Metric Card Component
-const MetricCard = ({ title, value, unit, icon: Icon, trend, color = "primary" }) => {
+const MetricCard = ({ title, value, unit, icon: Icon, trend, color = "primary", onClick }) => {
   const colorClasses = {
     primary: "text-primary",
     success: "text-emerald-400",
@@ -241,7 +241,10 @@ const MetricCard = ({ title, value, unit, icon: Icon, trend, color = "primary" }
   };
   
   return (
-    <Card className="metric-card bg-card/50 border-border/30 backdrop-blur-sm card-hover">
+    <Card 
+      className={`metric-card bg-card/50 border-border/30 backdrop-blur-sm card-hover ${onClick ? 'cursor-pointer hover:border-primary/50' : ''}`}
+      onClick={onClick}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div>
