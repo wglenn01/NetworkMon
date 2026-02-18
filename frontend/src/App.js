@@ -535,11 +535,11 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
                 return (
                   <div 
                     key={device.id}
-                    className="flex items-center justify-between p-3 bg-background/50 border border-border/20 hover:border-primary/30 cursor-pointer"
+                    className="flex items-center p-3 bg-background/50 border border-border/20 hover:border-primary/30 cursor-pointer"
                     onClick={() => navigate(`/device/${device.id}`)}
                     data-testid={`device-row-${device.id}`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-[200px]">
                       <div className={`device-status ${device.status}`} />
                       <div>
                         <p className="font-medium text-sm text-foreground">{device.name}</p>
@@ -553,8 +553,10 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex-1 px-4">
                       <DeviceSparkline deviceId={device.id} />
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
                       {category && (
                         <Badge variant="outline" className="font-mono text-[10px] tracking-wider" style={{ borderColor: category.color, color: category.color }}>
                           {category.name}
