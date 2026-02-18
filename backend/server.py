@@ -645,7 +645,6 @@ async def export_devices_csv():
     """Export all devices to CSV format"""
     devices = await db.devices.find({}, {"_id": 0}).to_list(1000)
     categories = await db.categories.find({}, {"_id": 0}).to_list(100)
-    templates = await db.snmp_templates.find({}, {"_id": 0}).to_list(100)
     
     category_lookup = {c['id']: c['name'] for c in categories}
     
