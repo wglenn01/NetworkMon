@@ -598,7 +598,7 @@ const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDe
   const [searchQuery, setSearchQuery] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
   
   // Filter by category first, then by search query
   const filteredDevices = (activeCategory && activeCategory !== 'all' 
