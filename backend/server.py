@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -13,6 +13,8 @@ from datetime import datetime, timezone, timedelta
 import asyncio
 import random
 import subprocess
+import csv
+import io
 
 # SNMP imports - handle different pysnmp versions
 try:
