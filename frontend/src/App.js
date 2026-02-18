@@ -601,20 +601,37 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
 // Device List Component
 const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDevice, onDeleteDevice, onRefresh }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const fileInputRef = useRef(null);
   
-  // Filter by category first, then by search query
+  // Get status filter from URL params
+  const searchParams = new URLSearchParams(location.search);
+  const statusFilter = searchParams.get('status');
+  
+  // Filter by category, then by status, then by search query
   const filteredDevices = (activeCategory && activeCategory !== 'all' 
     ? devices.filter(d => d.category_id === activeCategory)
     : devices
   ).filter(d => {
+    // Status filter
+    if (statusFilter === 'online') {
+      return d.status === 'online';
+    } else if (statusFilter === 'offline') {
+      return d.status === 'offline' || d.status === 'unknown';
+    }
+    return true;
+  }).filter(d => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
     return d.name.toLowerCase().includes(query) || d.ip_address.toLowerCase().includes(query);
   });
+  
+  const clearStatusFilter = () => {
+    navigate('/devices');
+  };
   
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
