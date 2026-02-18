@@ -530,6 +530,128 @@ async def delete_device(device_id: str):
     await db.alerts.delete_many({"device_id": device_id})
     return {"message": "Device deleted"}
 
+@api_router.post("/devices/import")
+async def import_devices_csv(file: UploadFile = File(...)):
+    """
+    Import devices from CSV file.
+    Expected columns: Name, IP, Category, Template (optional), Community (optional)
+    """
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    content = await file.read()
+    decoded = content.decode('utf-8')
+    reader = csv.DictReader(io.StringIO(decoded))
+    
+    # Normalize column names (case-insensitive)
+    results = {
+        "success": [],
+        "errors": []
+    }
+    
+    # Get all categories and templates for lookup
+    categories = await db.categories.find({}, {"_id": 0}).to_list(100)
+    templates = await db.snmp_templates.find({}, {"_id": 0}).to_list(100)
+    
+    category_lookup = {c['name'].lower(): c for c in categories}
+    template_lookup = {t['name'].lower(): t for t in templates}
+    
+    row_num = 1
+    for row in reader:
+        row_num += 1
+        try:
+            # Normalize keys to lowercase
+            row_lower = {k.lower().strip(): v.strip() for k, v in row.items() if k}
+            
+            name = row_lower.get('name', '')
+            ip = row_lower.get('ip', '') or row_lower.get('ip_address', '') or row_lower.get('ip address', '')
+            category_name = row_lower.get('category', '')
+            template_name = row_lower.get('template', '') or row_lower.get('template name', '') or row_lower.get('template_name', '')
+            community = row_lower.get('community', '') or row_lower.get('community string', '') or row_lower.get('community_string', '') or 'public'
+            
+            if not name:
+                results["errors"].append({"row": row_num, "error": "Missing device name"})
+                continue
+            if not ip:
+                results["errors"].append({"row": row_num, "error": f"Missing IP address for {name}"})
+                continue
+            if not category_name:
+                results["errors"].append({"row": row_num, "error": f"Missing category for {name}"})
+                continue
+            
+            # Find category
+            category = category_lookup.get(category_name.lower())
+            if not category:
+                results["errors"].append({"row": row_num, "error": f"Category '{category_name}' not found for {name}"})
+                continue
+            
+            # Check if device already exists
+            existing = await db.devices.find_one({"$or": [{"name": name}, {"ip_address": ip}]})
+            if existing:
+                results["errors"].append({"row": row_num, "error": f"Device with name '{name}' or IP '{ip}' already exists"})
+                continue
+            
+            # Get OIDs from template if specified
+            oids = []
+            if template_name:
+                template = template_lookup.get(template_name.lower())
+                if template:
+                    oids = template.get('oids', [])
+                else:
+                    results["errors"].append({"row": row_num, "error": f"Template '{template_name}' not found for {name}, importing without OIDs"})
+            
+            # Create device
+            device = Device(
+                name=name,
+                ip_address=ip,
+                category_id=category['id'],
+                community_string=community,
+                oids=oids,
+                ping_enabled=True,
+                snmp_enabled=True,
+                auto_poll=True,
+                polling_interval=300,
+                status="unknown"
+            )
+            
+            await db.devices.insert_one(serialize_doc(device.model_dump()))
+            results["success"].append({"row": row_num, "name": name, "ip": ip})
+            
+        except Exception as e:
+            results["errors"].append({"row": row_num, "error": str(e)})
+    
+    return {
+        "message": f"Imported {len(results['success'])} devices, {len(results['errors'])} errors",
+        "imported": len(results['success']),
+        "failed": len(results['errors']),
+        "details": results
+    }
+
+@api_router.get("/devices/export")
+async def export_devices_csv():
+    """Export all devices to CSV format"""
+    devices = await db.devices.find({}, {"_id": 0}).to_list(1000)
+    categories = await db.categories.find({}, {"_id": 0}).to_list(100)
+    templates = await db.snmp_templates.find({}, {"_id": 0}).to_list(100)
+    
+    category_lookup = {c['id']: c['name'] for c in categories}
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Name', 'IP', 'Category', 'Community', 'Status', 'OID Count'])
+    
+    for device in devices:
+        writer.writerow([
+            device.get('name', ''),
+            device.get('ip_address', ''),
+            category_lookup.get(device.get('category_id', ''), 'Unknown'),
+            device.get('community_string', 'public'),
+            device.get('status', 'unknown'),
+            len(device.get('oids', []))
+        ])
+    
+    return {"csv": output.getvalue()}
+
 # =============== MONITORING ENDPOINTS ===============
 
 @api_router.get("/monitoring/{device_id}")
