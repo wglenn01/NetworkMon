@@ -554,6 +554,7 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
+                      <DeviceSparkline deviceId={device.id} />
                       {category && (
                         <Badge variant="outline" className="font-mono text-[10px] tracking-wider" style={{ borderColor: category.color, color: category.color }}>
                           {category.name}
