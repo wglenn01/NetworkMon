@@ -39,6 +39,7 @@ db = client[os.environ['DB_NAME']]
 # Background scheduler state
 scheduler_task = None
 SCHEDULER_INTERVAL = 30  # Check every 30 seconds for devices due for polling
+MAX_CONCURRENT_POLLS = 10  # Limit concurrent device polls
 
 # Configure logging
 logging.basicConfig(
@@ -46,6 +47,14 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Polling semaphore to limit concurrent device polls
+_poll_semaphore = asyncio.Semaphore(MAX_CONCURRENT_POLLS)
+
+async def poll_device_with_limit(device):
+    """Poll a device with concurrency limit"""
+    async with _poll_semaphore:
+        await poll_single_device(device)
 
 async def auto_poll_scheduler():
     """Background task that continuously checks and polls devices based on their intervals"""
@@ -58,6 +67,7 @@ async def auto_poll_scheduler():
             # Find devices due for polling
             devices = await db.devices.find({"auto_poll": True}, {"_id": 0}).to_list(1000)
             
+            devices_to_poll = []
             for device in devices:
                 interval = device.get('polling_interval', 300)
                 last_polled = device.get('last_polled')
@@ -72,8 +82,13 @@ async def auto_poll_scheduler():
                         should_poll = True
                 
                 if should_poll:
-                    logger.info(f"Auto-polling device: {device['name']}")
-                    asyncio.create_task(poll_single_device(device))
+                    devices_to_poll.append(device)
+            
+            # Poll devices with concurrency limit
+            if devices_to_poll:
+                logger.info(f"Auto-polling {len(devices_to_poll)} devices")
+                tasks = [poll_device_with_limit(d) for d in devices_to_poll]
+                await asyncio.gather(*tasks, return_exceptions=True)
                     
         except Exception as e:
             logger.error(f"Error in auto-poll scheduler: {e}")
