@@ -593,9 +593,12 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
 };
 
 // Device List Component
-const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDevice, onDeleteDevice }) => {
+const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDevice, onDeleteDevice, onRefresh }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const fileInputRef = React.useRef(null);
   
   // Filter by category first, then by search query
   const filteredDevices = (activeCategory && activeCategory !== 'all' 
@@ -606,6 +609,52 @@ const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDe
     const query = searchQuery.toLowerCase();
     return d.name.toLowerCase().includes(query) || d.ip_address.toLowerCase().includes(query);
   });
+  
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setImporting(true);
+    setImportResult(null);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const res = await axios.post(`${API}/devices/import`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setImportResult(res.data);
+      if (res.data.imported > 0 && onRefresh) {
+        onRefresh();
+      }
+    } catch (err) {
+      setImportResult({ 
+        message: err.response?.data?.detail || 'Import failed', 
+        imported: 0, 
+        failed: 0 
+      });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+  
+  const downloadSampleCSV = () => {
+    const sample = `Name,IP,Category,Template,Community
+Router-1,192.168.1.1,Routers,Cisco Router,public
+Switch-1,192.168.1.2,Switches,Cisco Switch,public
+Radio-1,10.0.0.1,Backhauls,Ubiquiti Radio,public`;
+    const blob = new Blob([sample], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'device_import_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   
   return (
     <div className="space-y-6 animate-fade-in" data-testid="device-list">
@@ -637,12 +686,59 @@ const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDe
               </button>
             )}
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <Button 
+            variant="outline" 
+            className="btn-technical gap-2" 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            data-testid="import-csv-btn"
+          >
+            <Upload className="w-4 h-4" />
+            {importing ? 'Importing...' : 'Import CSV'}
+          </Button>
           <Button className="btn-technical gap-2" onClick={onAddDevice} data-testid="add-device-btn">
             <Plus className="w-4 h-4" />
             Add Device
           </Button>
         </div>
       </div>
+      
+      {/* Import Result */}
+      {importResult && (
+        <div className={`p-4 border ${importResult.imported > 0 ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{importResult.message}</p>
+              {importResult.details?.errors?.length > 0 && (
+                <details className="mt-2">
+                  <summary className="text-sm text-muted-foreground cursor-pointer">View errors ({importResult.details.errors.length})</summary>
+                  <ul className="mt-2 text-xs space-y-1 text-red-400">
+                    {importResult.details.errors.map((err, i) => (
+                      <li key={i}>Row {err.row}: {err.error}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={downloadSampleCSV} className="text-xs">
+                <Download className="w-3 h-3 mr-1" />
+                Sample CSV
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setImportResult(null)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Show search results count when searching */}
       {searchQuery && (
