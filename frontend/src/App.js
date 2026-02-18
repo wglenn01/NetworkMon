@@ -426,18 +426,21 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
           value={stats.online_devices} 
           icon={Shield}
           color="success"
+          onClick={() => navigate('/devices?status=online')}
         />
         <MetricCard 
           title="Offline" 
           value={stats.offline_devices} 
           icon={AlertTriangle}
           color="error"
+          onClick={() => navigate('/devices?status=offline')}
         />
         <MetricCard 
           title="Active Alerts" 
           value={stats.active_alerts} 
           icon={Zap}
           color={stats.active_alerts > 0 ? "warning" : "primary"}
+          onClick={() => navigate('/alerts')}
         />
       </div>
       
