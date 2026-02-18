@@ -244,7 +244,7 @@ const DeviceSparkline = ({ deviceId, metricName = "PHYRx" }) => {
   if (loading || data.length < 2) return null;
   
   return (
-    <div className="w-20 h-8">
+    <div className="w-32 h-8 flex-shrink-0">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <defs>
