@@ -685,7 +685,17 @@ Radio-1,10.0.0.1,Backhauls,Ubiquiti Radio,public`;
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-mono text-foreground">Devices</h1>
           <p className="text-muted-foreground mt-1">
-            {activeCategory && activeCategory !== 'all' 
+            {statusFilter ? (
+              <span className="flex items-center gap-2">
+                Showing <span className={statusFilter === 'offline' ? 'text-red-400' : 'text-emerald-400'}>{statusFilter}</span> devices
+                <button 
+                  onClick={clearStatusFilter}
+                  className="text-xs text-primary hover:underline"
+                >
+                  (clear filter)
+                </button>
+              </span>
+            ) : activeCategory && activeCategory !== 'all' 
               ? `Showing ${categories.find(c => c.id === activeCategory)?.name || ''} devices`
               : 'All monitored devices'}
           </p>
