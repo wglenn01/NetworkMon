@@ -2568,6 +2568,7 @@ function App() {
                 onAddDevice={handleAddDevice}
                 onEditDevice={handleEditDevice}
                 onDeleteDevice={handleDeleteDevice}
+                onRefresh={fetchDevices}
               />
             } />
             <Route path="/device/:deviceId" element={
