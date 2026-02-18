@@ -2325,6 +2325,19 @@ function App() {
   const [editingDevice, setEditingDevice] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  const fetchDevices = useCallback(async () => {
+    try {
+      const [devRes, catStatsRes] = await Promise.all([
+        axios.get(`${API}/devices`),
+        axios.get(`${API}/categories/stats`)
+      ]);
+      setDevices(devRes.data);
+      setCategoryStats(catStatsRes.data);
+    } catch (err) {
+      console.error('Failed to fetch devices:', err);
+    }
+  }, []);
+  
   const fetchData = useCallback(async () => {
     try {
       const [catRes, devRes, alertRes, statsRes, templateRes, schedulerRes, catStatsRes, pinnedRes] = await Promise.all([
