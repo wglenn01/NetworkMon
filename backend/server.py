@@ -286,66 +286,64 @@ async def ping_host(ip: str) -> Optional[float]:
         logger.error(f"Ping error for {ip}: {e}")
         return None
 
+# Global SNMP engine - reuse to prevent memory leaks
+_snmp_engine = None
+_snmp_semaphore = asyncio.Semaphore(20)  # Limit concurrent SNMP requests
+
+def get_snmp_engine():
+    global _snmp_engine
+    if _snmp_engine is None:
+        _snmp_engine = SnmpEngine()
+    return _snmp_engine
+
 async def get_snmp_value(ip: str, community: str, oid: str) -> Optional[Union[str, float, int]]:
     """Perform actual SNMP GET request to retrieve OID value"""
-    try:
-        logger.info(f"SNMP GET: {ip} community={community} oid={oid}")
-        
-        # Create transport target using async create() method
-        transport = await UdpTransportTarget.create((ip, 161))
-        
-        # Perform SNMP GET (SNMPv2c with mpModel=1)
-        error_indication, error_status, error_index, var_binds = await snmp_get_cmd(
-            SnmpEngine(),
-            CommunityData(community, mpModel=1),
-            transport,
-            ContextData(),
-            ObjectType(ObjectIdentity(oid))
-        )
-        
-        if error_indication:
-            logger.warning(f"SNMP error indication for {ip} OID {oid}: {error_indication}")
-            return None
-        elif error_status:
-            logger.warning(f"SNMP error status for {ip} OID {oid}: {error_status.prettyPrint()} at {error_index}")
-            return None
-        else:
-            for var_bind in var_binds:
-                # Get the raw value
-                raw_value = var_bind[1]
-                value_str = raw_value.prettyPrint()
-                
-                logger.info(f"SNMP response for {ip} OID {oid}: type={type(raw_value).__name__}, value={value_str}")
-                
-                # Check for NoSuchObject or NoSuchInstance
-                if 'noSuch' in type(raw_value).__name__.lower() or 'noSuch' in value_str.lower():
-                    logger.warning(f"SNMP OID {oid} not found on {ip}")
-                    return None
-                
-                # Try to parse as number first
-                try:
-                    # Handle Counter, Gauge, Integer, Counter64 types
-                    if hasattr(raw_value, 'hasValue') and raw_value.hasValue():
-                        int_val = int(raw_value)
-                        logger.info(f"SNMP numeric value for {ip} OID {oid}: {int_val}")
-                        return float(int_val)
-                except (ValueError, TypeError):
-                    pass
-                
-                # Try parsing the string representation as a number
-                try:
-                    float_val = float(value_str)
-                    logger.info(f"SNMP parsed float value for {ip} OID {oid}: {float_val}")
-                    return float_val
-                except ValueError:
-                    # Return as string for text values (like hostname, sysDescr, etc.)
-                    logger.info(f"SNMP text value for {ip} OID {oid}: {value_str}")
-                    return value_str
+    async with _snmp_semaphore:  # Limit concurrent requests
+        try:
+            # Create transport target using async create() method
+            transport = await UdpTransportTarget.create((ip, 161))
+            
+            # Perform SNMP GET (SNMPv2c with mpModel=1) - reuse engine
+            error_indication, error_status, error_index, var_binds = await snmp_get_cmd(
+                get_snmp_engine(),
+                CommunityData(community, mpModel=1),
+                transport,
+                ContextData(),
+                ObjectType(ObjectIdentity(oid))
+            )
+            
+            if error_indication:
+                logger.debug(f"SNMP error for {ip} OID {oid}: {error_indication}")
+                return None
+            elif error_status:
+                logger.debug(f"SNMP error for {ip} OID {oid}: {error_status.prettyPrint()}")
+                return None
+            else:
+                for var_bind in var_binds:
+                    raw_value = var_bind[1]
+                    value_str = raw_value.prettyPrint()
                     
-        return None
-    except Exception as e:
-        logger.error(f"SNMP exception for {ip} OID {oid}: {e}")
-        return None
+                    # Check for NoSuchObject or NoSuchInstance
+                    if 'noSuch' in type(raw_value).__name__.lower() or 'noSuch' in value_str.lower():
+                        return None
+                    
+                    # Try to parse as number first
+                    try:
+                        if hasattr(raw_value, 'hasValue') and raw_value.hasValue():
+                            return float(int(raw_value))
+                    except (ValueError, TypeError):
+                        pass
+                    
+                    # Try parsing as float
+                    try:
+                        return float(value_str)
+                    except ValueError:
+                        return value_str
+                        
+            return None
+        except Exception as e:
+            logger.debug(f"SNMP exception for {ip} OID {oid}: {e}")
+            return None
 
 # =============== CATEGORY ENDPOINTS ===============
 
