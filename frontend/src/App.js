@@ -215,6 +215,57 @@ const Sidebar = ({ categories, categoryStats, activeCategory, setActiveCategory,
   );
 };
 
+// Mini Sparkline Component for Dashboard
+const DeviceSparkline = ({ deviceId, metricName = "PHYRx" }) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`${API}/monitoring/${deviceId}?hours=24`);
+        // Filter for the specific metric and get last 24 data points
+        const metricData = res.data
+          .filter(d => d.metric_name?.toLowerCase().includes(metricName.toLowerCase()) || 
+                       d.metric_name?.toLowerCase().includes('rx') ||
+                       d.metric_name?.toLowerCase().includes('traffic'))
+          .slice(-24)
+          .map(d => ({ value: typeof d.value === 'number' ? d.value : 0 }));
+        setData(metricData);
+      } catch (err) {
+        // Silently fail - sparkline just won't show
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [deviceId, metricName]);
+  
+  if (loading || data.length < 2) return null;
+  
+  return (
+    <div className="w-20 h-8">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id={`spark-${deviceId}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <Area 
+            type="monotone" 
+            dataKey="value" 
+            stroke="#0EA5E9"
+            fill={`url(#spark-${deviceId})`}
+            strokeWidth={1}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
 // Status Badge Component
 const StatusBadge = ({ status }) => {
   const variants = {
