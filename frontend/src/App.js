@@ -2808,6 +2808,16 @@ function App() {
     }
   };
   
+  const handleAcknowledgeAllAlerts = async () => {
+    try {
+      const res = await axios.put(`${API}/alerts/acknowledge-all`);
+      toast.success(`Acknowledged ${res.data.count} alerts`);
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to acknowledge alerts');
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
