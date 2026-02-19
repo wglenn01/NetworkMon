@@ -2581,15 +2581,20 @@ function App() {
       if (!isInitialLoad.current) {
         // Check for NEW alerts (not previously shown)
         const unacknowledgedAlerts = alertRes.data.filter(a => !a.acknowledged);
+        let hasCritical = false;
+        let hasWarning = false;
+        
         unacknowledgedAlerts.forEach(alert => {
           if (!shownAlertIds.current.has(alert.id)) {
             shownAlertIds.current.add(alert.id);
             if (alert.alert_type.includes('critical') || alert.alert_type === 'device_down') {
+              hasCritical = true;
               toast.error(`🚨 ${alert.device_name}: ${alert.message}`, { 
                 duration: 8000,
                 icon: '⚠️'
               });
             } else if (alert.alert_type.includes('warning')) {
+              hasWarning = true;
               toast.warning(`⚠️ ${alert.device_name}: ${alert.message}`, { 
                 duration: 6000 
               });
@@ -2597,16 +2602,28 @@ function App() {
           }
         });
         
+        // Play sound for new alerts (only once per poll cycle)
+        if (hasCritical) {
+          playAlertSound('critical');
+        } else if (hasWarning) {
+          playAlertSound('warning');
+        }
+        
         // Check for device status changes (online <-> offline)
+        let hasDeviceDown = false;
+        let hasDeviceRecovered = false;
+        
         devRes.data.forEach(device => {
           const prevStatus = previousDeviceStatuses.current.get(device.id);
           if (prevStatus !== undefined && prevStatus !== device.status) {
             if (device.status === 'offline' && prevStatus === 'online') {
+              hasDeviceDown = true;
               toast.error(`📡 ${device.name} is now OFFLINE`, { 
                 duration: 10000,
                 description: device.ip_address
               });
             } else if (device.status === 'online' && prevStatus === 'offline') {
+              hasDeviceRecovered = true;
               toast.success(`✅ ${device.name} is back ONLINE`, { 
                 duration: 5000,
                 description: device.ip_address
@@ -2614,6 +2631,15 @@ function App() {
             }
           }
         });
+        
+        // Play sound for device status changes (if no alert sound was already played)
+        if (!hasCritical && !hasWarning) {
+          if (hasDeviceDown) {
+            playAlertSound('critical');
+          } else if (hasDeviceRecovered) {
+            playAlertSound('success');
+          }
+        }
       }
       
       // Update previous device statuses for next comparison
