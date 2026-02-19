@@ -1337,7 +1337,9 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
 };
 
 // Alerts Page Component
-const AlertsPage = ({ alerts, onAcknowledge, onDelete, onClear, onRefresh }) => {
+const AlertsPage = ({ alerts, onAcknowledge, onAcknowledgeAll, onDelete, onClear, onRefresh }) => {
+  const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length;
+  
   return (
     <div className="space-y-6 animate-fade-in" data-testid="alerts-page">
       <div className="flex items-center justify-between">
@@ -1350,6 +1352,17 @@ const AlertsPage = ({ alerts, onAcknowledge, onDelete, onClear, onRefresh }) => 
             <RefreshCw className="w-4 h-4" />
             Refresh
           </Button>
+          {unacknowledgedCount > 0 && (
+            <Button 
+              variant="outline" 
+              className="btn-technical gap-2 text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10" 
+              onClick={onAcknowledgeAll}
+              data-testid="acknowledge-all-btn"
+            >
+              <Check className="w-4 h-4" />
+              Acknowledge All ({unacknowledgedCount})
+            </Button>
+          )}
           <Button variant="outline" className="btn-technical gap-2 text-destructive" onClick={onClear} data-testid="clear-alerts-btn">
             <Trash2 className="w-4 h-4" />
             Clear Acknowledged
