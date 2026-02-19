@@ -920,6 +920,12 @@ Radio-1,10.0.0.1,Backhauls,Ubiquiti Radio,public`;
                 <div className="flex items-center gap-2 mb-3">
                   <div className="category-dot" style={{ backgroundColor: category?.color }} />
                   <span className="text-xs text-muted-foreground">{category?.name}</span>
+                  {device.alerts_silenced && (
+                    <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-400/30">
+                      <BellOff className="w-2.5 h-2.5 mr-1" />
+                      SILENCED
+                    </Badge>
+                  )}
                 </div>
                 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
