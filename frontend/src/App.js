@@ -1174,20 +1174,56 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
       {/* Latest Values */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {latestData.map((metric, index) => {
-          // Get OID config for data type
+          // Get OID config for data type (SNMP devices)
           const oidConfig = device.oids?.find(o => o.name === metric.metric_name);
           const dataType = oidConfig?.data_type || 'gauge';
-          const displayUnit = getUnitLabel(dataType, metric.unit);
-          const formattedValue = formatValue(metric.value, dataType, metric.unit);
+          
+          // Handle Mikrotik metrics specially
+          const isMikrotikMetric = metric.metric_type === 'mikrotik';
+          let displayValue = metric.value;
+          let displayUnit = metric.unit || '';
+          
+          if (isMikrotikMetric) {
+            if (metric.metric_name === 'Uptime') {
+              // Format uptime from seconds
+              const secs = parseInt(metric.value);
+              const days = Math.floor(secs / 86400);
+              const hours = Math.floor((secs % 86400) / 3600);
+              const mins = Math.floor((secs % 3600) / 60);
+              displayValue = `${days}d ${hours}h ${mins}m`;
+              displayUnit = '';
+            } else if (metric.unit === 'Mbps' || metric.metric_name.includes(' RX') || metric.metric_name.includes(' TX')) {
+              displayValue = parseFloat(metric.value).toFixed(2);
+            } else if (metric.unit === '%') {
+              displayValue = parseFloat(metric.value).toFixed(1);
+            } else {
+              displayValue = typeof metric.value === 'number' ? metric.value.toFixed(2) : metric.value;
+            }
+          } else {
+            displayUnit = getUnitLabel(dataType, metric.unit);
+            displayValue = formatValue(metric.value, dataType, metric.unit);
+          }
+          
+          // Determine icon and color based on metric type
+          let icon = Activity;
+          let color = 'primary';
+          if (metric.metric_type === 'ping') {
+            icon = Wifi;
+            color = 'success';
+          } else if (isMikrotikMetric) {
+            icon = Router;
+            color = metric.metric_name.includes(' RX') ? 'success' : 
+                   metric.metric_name.includes(' TX') ? 'warning' : 'info';
+          }
           
           return (
             <MetricCard
               key={index}
               title={metric.metric_name}
-              value={formattedValue}
-              unit={!isAutoScalingType(dataType) ? displayUnit : ''}
-              icon={metric.metric_type === 'ping' ? Wifi : Activity}
-              color={metric.metric_type === 'ping' ? 'success' : 'primary'}
+              value={displayValue}
+              unit={displayUnit}
+              icon={icon}
+              color={color}
             />
           );
         })}
