@@ -1470,6 +1470,23 @@ const TemplatesPage = ({ templates, onSave, onDelete, onRefresh }) => {
                       variant="outline" 
                       size="sm" 
                       className="btn-technical text-xs"
+                      onClick={async () => {
+                        try {
+                          const res = await axios.post(`${API}/templates/${template.id}/apply-to-devices`);
+                          toast.success(res.data.message);
+                        } catch (err) {
+                          toast.error('Failed to apply template');
+                        }
+                      }}
+                      title="Apply template OIDs to all devices using this template"
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Apply to Devices
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="btn-technical text-xs"
                       onClick={() => handleEdit(template)}
                       data-testid={`edit-template-${template.id}`}
                     >
