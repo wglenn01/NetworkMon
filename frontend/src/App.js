@@ -2480,6 +2480,11 @@ function App() {
   const [editingDevice, setEditingDevice] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  // Track shown alert IDs and previous device statuses for notifications
+  const shownAlertIds = useRef(new Set());
+  const previousDeviceStatuses = useRef(new Map());
+  const isInitialLoad = useRef(true);
+  
   const fetchDevices = useCallback(async () => {
     try {
       const [devRes, catStatsRes] = await Promise.all([
@@ -2514,23 +2519,61 @@ function App() {
       setCategoryStats(catStatsRes.data);
       setPinnedGraphs(pinnedRes.data);
       
-      // Show toast for new unacknowledged alerts
-      const newAlerts = alertRes.data.filter(a => !a.acknowledged);
-      if (newAlerts.length > 0 && !loading) {
-        newAlerts.slice(0, 3).forEach(alert => {
-          if (alert.alert_type.includes('critical') || alert.alert_type === 'device_down') {
-            toast.error(alert.message, { duration: 5000 });
-          } else if (alert.alert_type.includes('warning')) {
-            toast.warning(alert.message, { duration: 4000 });
+      // Show notifications only after initial load
+      if (!isInitialLoad.current) {
+        // Check for NEW alerts (not previously shown)
+        const unacknowledgedAlerts = alertRes.data.filter(a => !a.acknowledged);
+        unacknowledgedAlerts.forEach(alert => {
+          if (!shownAlertIds.current.has(alert.id)) {
+            shownAlertIds.current.add(alert.id);
+            if (alert.alert_type.includes('critical') || alert.alert_type === 'device_down') {
+              toast.error(`🚨 ${alert.device_name}: ${alert.message}`, { 
+                duration: 8000,
+                icon: '⚠️'
+              });
+            } else if (alert.alert_type.includes('warning')) {
+              toast.warning(`⚠️ ${alert.device_name}: ${alert.message}`, { 
+                duration: 6000 
+              });
+            }
           }
         });
+        
+        // Check for device status changes (online <-> offline)
+        devRes.data.forEach(device => {
+          const prevStatus = previousDeviceStatuses.current.get(device.id);
+          if (prevStatus !== undefined && prevStatus !== device.status) {
+            if (device.status === 'offline' && prevStatus === 'online') {
+              toast.error(`📡 ${device.name} is now OFFLINE`, { 
+                duration: 10000,
+                description: device.ip_address
+              });
+            } else if (device.status === 'online' && prevStatus === 'offline') {
+              toast.success(`✅ ${device.name} is back ONLINE`, { 
+                duration: 5000,
+                description: device.ip_address
+              });
+            }
+          }
+        });
+      }
+      
+      // Update previous device statuses for next comparison
+      devRes.data.forEach(device => {
+        previousDeviceStatuses.current.set(device.id, device.status);
+      });
+      
+      // Mark initial load as complete and seed shown alerts
+      if (isInitialLoad.current) {
+        alertRes.data.forEach(a => shownAlertIds.current.add(a.id));
+        isInitialLoad.current = false;
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
     } finally {
       setLoading(false);
     }
-  }, [loading]);
+  }, []);
   
   useEffect(() => {
     fetchData();
