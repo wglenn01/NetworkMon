@@ -1054,6 +1054,15 @@ async def clear_alerts(acknowledged_only: bool = True):
     result = await db.alerts.delete_many(query)
     return {"message": f"Deleted {result.deleted_count} alerts"}
 
+@api_router.put("/alerts/acknowledge-all")
+async def acknowledge_all_alerts():
+    """Acknowledge all unacknowledged alerts"""
+    result = await db.alerts.update_many(
+        {"acknowledged": False},
+        {"$set": {"acknowledged": True}}
+    )
+    return {"message": f"Acknowledged {result.modified_count} alerts", "count": result.modified_count}
+
 @api_router.get("/alerts/history/{device_id}")
 async def get_device_alert_history(device_id: str, limit: int = 50):
     """Get alert history for a specific device (including resolved)"""
