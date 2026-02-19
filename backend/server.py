@@ -481,6 +481,53 @@ async def update_template(template_id: str, input: SNMPTemplateUpdate):
     deserialize_datetime(updated, ['created_at'])
     return updated
 
+@api_router.post("/templates/{template_id}/apply-to-devices")
+async def apply_template_to_devices(template_id: str):
+    """Apply template OIDs to all devices that were created with this template"""
+    template = await db.snmp_templates.find_one({"id": template_id}, {"_id": 0})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    template_oids = template.get('oids', [])
+    template_name = template.get('name', '')
+    
+    # Find devices that have OIDs matching this template's OIDs (by OID string)
+    # This is a heuristic - we look for devices whose OIDs overlap with template OIDs
+    template_oid_strings = {oid.get('oid') for oid in template_oids}
+    
+    devices = await db.devices.find({}, {"_id": 0}).to_list(1000)
+    updated_count = 0
+    
+    for device in devices:
+        device_oid_strings = {oid.get('oid') for oid in device.get('oids', [])}
+        # If device has any OIDs from this template, update all matching OIDs
+        if device_oid_strings & template_oid_strings:
+            # Create updated OIDs list - update matching OIDs, keep non-matching ones
+            updated_oids = []
+            for device_oid in device.get('oids', []):
+                # Find matching template OID
+                matching_template_oid = next(
+                    (t_oid for t_oid in template_oids if t_oid.get('oid') == device_oid.get('oid')),
+                    None
+                )
+                if matching_template_oid:
+                    # Update with template values (thresholds, data_type, etc.)
+                    updated_oids.append(matching_template_oid)
+                else:
+                    # Keep device's custom OID
+                    updated_oids.append(device_oid)
+            
+            await db.devices.update_one(
+                {"id": device['id']},
+                {"$set": {"oids": updated_oids}}
+            )
+            updated_count += 1
+    
+    return {
+        "message": f"Template '{template_name}' applied to {updated_count} devices",
+        "updated_devices": updated_count
+    }
+
 @api_router.delete("/templates/{template_id}")
 async def delete_template(template_id: str):
     result = await db.snmp_templates.delete_one({"id": template_id})
