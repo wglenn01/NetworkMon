@@ -1194,11 +1194,24 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
       </div>
       
       {/* Charts */}
-      <Tabs defaultValue="ping" className="space-y-4">
-        <TabsList className="bg-card/50 border border-border/30">
+      <Tabs defaultValue={isMikrotikDevice && Object.keys(mikrotikThroughputMetrics).length > 0 ? Object.keys(mikrotikThroughputMetrics)[0] : "ping"} className="space-y-4">
+        <TabsList className="bg-card/50 border border-border/30 flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="ping" className="font-mono text-xs data-[state=active]:bg-primary/20">PING</TabsTrigger>
+          {/* SNMP metrics tabs */}
           {Object.keys(snmpMetrics).map(name => (
-            <TabsTrigger key={name} value={name} className="font-mono text-xs data-[state=active]:bg-primary/20">
+            <TabsTrigger key={name} value={`snmp-${name}`} className="font-mono text-xs data-[state=active]:bg-primary/20">
+              {name.toUpperCase()}
+            </TabsTrigger>
+          ))}
+          {/* Mikrotik throughput metrics tabs (RX/TX) */}
+          {Object.keys(mikrotikThroughputMetrics).map(name => (
+            <TabsTrigger key={name} value={name} className="font-mono text-xs data-[state=active]:bg-cyan-500/20 text-cyan-400">
+              {name.toUpperCase()}
+            </TabsTrigger>
+          ))}
+          {/* Mikrotik system metrics tabs */}
+          {Object.keys(mikrotikSystemMetrics).map(name => (
+            <TabsTrigger key={name} value={`mt-${name}`} className="font-mono text-xs data-[state=active]:bg-cyan-500/20 text-cyan-400">
               {name.toUpperCase()}
             </TabsTrigger>
           ))}
@@ -1253,8 +1266,9 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
           </Card>
         </TabsContent>
         
+        {/* SNMP Metrics */}
         {Object.entries(snmpMetrics).map(([name, data]) => (
-          <TabsContent key={name} value={name}>
+          <TabsContent key={name} value={`snmp-${name}`}>
             <Card className="bg-card/50 border-border/30 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg font-mono">{name}</CardTitle>
@@ -1297,6 +1311,149 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
             </Card>
           </TabsContent>
         ))}
+        
+        {/* Mikrotik Throughput Metrics (RX/TX) - with area fill */}
+        {Object.entries(mikrotikThroughputMetrics).map(([name, metric]) => {
+          const isRx = name.includes(' RX');
+          const color = isRx ? '#10B981' : '#F59E0B'; // Green for RX, Amber for TX
+          
+          return (
+            <TabsContent key={name} value={name}>
+              <Card className="bg-card/50 border-cyan-500/20 backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-mono flex items-center gap-2">
+                      <Router className="w-4 h-4 text-cyan-400" />
+                      {name}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metric.unit || 'Mbps'} • Mikrotik API
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`btn-technical text-xs ${isGraphPinned(name) ? 'text-cyan-400' : ''}`}
+                    onClick={() => handlePinToggle('mikrotik', name)}
+                    data-testid={`pin-${name}-graph`}
+                  >
+                    {isGraphPinned(name) ? <PinOff className="w-3 h-3 mr-1" /> : <Pin className="w-3 h-3 mr-1" />}
+                    {isGraphPinned(name) ? 'Unpin' : 'Pin to Dashboard'}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={metric.data}>
+                        <defs>
+                          <linearGradient id={`gradient-${name.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={color} stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor={color} stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis 
+                          tick={{ fontSize: 10 }} 
+                          tickFormatter={(v) => `${v.toFixed(1)}`}
+                          domain={[0, 'auto']}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(220 25% 5%)', 
+                            border: '1px solid rgba(6, 182, 212, 0.3)',
+                            borderRadius: 0
+                          }}
+                          formatter={(value) => [`${value.toFixed(2)} ${metric.unit || 'Mbps'}`, name]}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="value" 
+                          stroke={color}
+                          fill={`url(#gradient-${name.replace(/\s/g, '')})`}
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })}
+        
+        {/* Mikrotik System Metrics (CPU, Memory, Uptime, Temp) */}
+        {Object.entries(mikrotikSystemMetrics).map(([name, metric]) => {
+          const isPercent = metric.unit === '%';
+          const isTemp = name.toLowerCase().includes('temp');
+          const color = isTemp ? '#EF4444' : isPercent ? '#8B5CF6' : '#06B6D4';
+          
+          return (
+            <TabsContent key={name} value={`mt-${name}`}>
+              <Card className="bg-card/50 border-cyan-500/20 backdrop-blur-sm">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-mono flex items-center gap-2">
+                      <Router className="w-4 h-4 text-cyan-400" />
+                      {name}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metric.unit} • Mikrotik API
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`btn-technical text-xs ${isGraphPinned(name) ? 'text-cyan-400' : ''}`}
+                    onClick={() => handlePinToggle('mikrotik', name)}
+                    data-testid={`pin-mt-${name}-graph`}
+                  >
+                    {isGraphPinned(name) ? <PinOff className="w-3 h-3 mr-1" /> : <Pin className="w-3 h-3 mr-1" />}
+                    {isGraphPinned(name) ? 'Unpin' : 'Pin to Dashboard'}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={metric.data}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
+                        <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+                        <YAxis 
+                          tick={{ fontSize: 10 }} 
+                          domain={isPercent ? [0, 100] : [0, 'auto']}
+                          tickFormatter={(v) => isPercent ? `${v}%` : v.toFixed(1)}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(220 25% 5%)', 
+                            border: '1px solid rgba(6, 182, 212, 0.3)',
+                            borderRadius: 0
+                          }}
+                          formatter={(value) => {
+                            if (name === 'Uptime') {
+                              const days = Math.floor(value / 86400);
+                              const hours = Math.floor((value % 86400) / 3600);
+                              const mins = Math.floor((value % 3600) / 60);
+                              return [`${days}d ${hours}h ${mins}m`, 'Uptime'];
+                            }
+                            return [`${value.toFixed(2)} ${metric.unit}`, name];
+                          }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="value" 
+                          stroke={color}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          );
+        })}
       </Tabs>
       
       {/* Alert History */}
