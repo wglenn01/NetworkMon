@@ -174,6 +174,7 @@ class Device(BaseModel):
     snmp_enabled: bool = True
     polling_interval: int = 300  # seconds (default 5 minutes)
     auto_poll: bool = True
+    alerts_silenced: bool = False  # When True, no alerts are created for this device
     status: str = "unknown"  # online, offline, warning, unknown
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_seen: Optional[datetime] = None
@@ -189,6 +190,7 @@ class DeviceCreate(BaseModel):
     snmp_enabled: bool = True
     polling_interval: int = 300
     auto_poll: bool = True
+    alerts_silenced: bool = False
 
 class DeviceUpdate(BaseModel):
     name: Optional[str] = None
@@ -200,6 +202,7 @@ class DeviceUpdate(BaseModel):
     snmp_enabled: Optional[bool] = None
     polling_interval: Optional[int] = None
     auto_poll: Optional[bool] = None
+    alerts_silenced: Optional[bool] = None
 
 class MonitoringData(BaseModel):
     model_config = ConfigDict(extra="ignore")
