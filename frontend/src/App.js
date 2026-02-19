@@ -1675,44 +1675,79 @@ const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
               )}
             </div>
             
-            {/* OID List Header */}
-            {formData.oids.length > 0 && (
-              <div className="grid grid-cols-5 gap-2 px-2 text-[10px] text-muted-foreground uppercase tracking-wider font-mono">
-                <span>OID</span>
-                <span>Name</span>
-                <span>Type</span>
-                <span>Unit</span>
-                <span>Thresholds</span>
-              </div>
-            )}
-            
-            <ScrollArea className="max-h-[200px]">
-              <div className="space-y-2">
+            {/* Editable OID List */}
+            <ScrollArea className="max-h-[300px]">
+              <div className="space-y-3">
                 {formData.oids.map((oid, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-background/50 border border-border/20">
-                    <div className="flex-1 grid grid-cols-5 gap-2 text-xs">
-                      <span className="font-mono truncate" title={oid.oid}>{oid.oid}</span>
-                      <span>{oid.name}</span>
-                      <span className="text-primary capitalize">{oid.data_type || 'gauge'}</span>
-                      <span>{oid.unit || '-'}</span>
-                      <span>
-                        {(oid.threshold_warning || oid.threshold_critical) ? (
-                          <>
-                            <span className="text-muted-foreground">{oid.threshold_operator === 'lt' ? '<' : '>'}</span>
-                            {oid.threshold_warning && <span className="text-amber-400 ml-1">W:{oid.threshold_warning}</span>}
-                            {oid.threshold_critical && <span className="text-red-400 ml-1">C:{oid.threshold_critical}</span>}
-                          </>
-                        ) : '-'}
-                      </span>
+                  <div key={index} className="p-3 bg-background/50 border border-border/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono text-muted-foreground">OID #{index + 1}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 hover:text-destructive"
+                        onClick={() => removeOid(index)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 hover:text-destructive"
-                      onClick={() => removeOid(index)}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input 
+                        value={oid.oid}
+                        onChange={(e) => updateOid(index, 'oid', e.target.value)}
+                        className="input-technical text-xs font-mono"
+                        placeholder="OID"
+                      />
+                      <Input 
+                        value={oid.name}
+                        onChange={(e) => updateOid(index, 'name', e.target.value)}
+                        className="input-technical text-xs"
+                        placeholder="Name"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      <Select value={oid.data_type || 'gauge'} onValueChange={(v) => updateOid(index, 'data_type', v)}>
+                        <SelectTrigger className="input-technical text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dataTypes.map(dt => (
+                            <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input 
+                        value={oid.unit || ''}
+                        onChange={(e) => updateOid(index, 'unit', e.target.value)}
+                        className="input-technical text-xs"
+                        placeholder="Unit"
+                      />
+                      <Select value={oid.threshold_operator || 'gt'} onValueChange={(v) => updateOid(index, 'threshold_operator', v)}>
+                        <SelectTrigger className="input-technical text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gt">&gt; Greater</SelectItem>
+                          <SelectItem value="lt">&lt; Less</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="flex gap-1">
+                        <Input 
+                          value={oid.threshold_warning || ''}
+                          onChange={(e) => updateOid(index, 'threshold_warning', e.target.value)}
+                          className="input-technical text-xs w-1/2"
+                          placeholder="Warn"
+                          type="number"
+                        />
+                        <Input 
+                          value={oid.threshold_critical || ''}
+                          onChange={(e) => updateOid(index, 'threshold_critical', e.target.value)}
+                          className="input-technical text-xs w-1/2"
+                          placeholder="Crit"
+                          type="number"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
