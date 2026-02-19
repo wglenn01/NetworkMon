@@ -48,6 +48,17 @@ Dark themed network monitoring tool where users can add devices to categories (R
 ## What's Been Implemented
 
 ### December 2025 (Current Session)
+- **Mikrotik RouterOS API Integration**:
+  - New device type "mikrotik" for realtime monitoring via RouterOS API
+  - Monitors: CPU Load, Memory Usage, Uptime, Temperature (if available)
+  - Interface throughput monitoring with RX/TX Mbps calculation
+  - Configurable polling interval: 5-60 seconds (default 5s for realtime)
+  - API credentials per device (username, password, port)
+  - Test Connection feature to discover available interfaces
+  - Separate fast-poll scheduler for Mikrotik devices (5-second cycle)
+  - Alert thresholds per interface (warning/critical Mbps)
+  - Uses `RouterOS-api` Python library
+
 - **Silence Alerts Per Device**:
   - Bell icon button on each device card to toggle alerts on/off
   - "SILENCED" badge displayed on silenced devices
