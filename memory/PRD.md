@@ -123,6 +123,7 @@ Dark themed network monitoring tool where users can add devices to categories (R
 ```
 
 ## Key API Endpoints
+- `PUT /api/alerts/acknowledge-all` - Acknowledge all unacknowledged alerts
 - `POST /api/templates/{id}/apply-to-devices` - Propagate template to linked devices
 - `PUT /api/templates/{id}` - Update template with OIDs
 - `GET /api/devices?status=online|offline` - Filter devices by status
