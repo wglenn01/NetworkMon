@@ -41,8 +41,11 @@ db = client[os.environ['DB_NAME']]
 
 # Background scheduler state
 scheduler_task = None
-SCHEDULER_INTERVAL = 30  # Check every 30 seconds for devices due for polling
+mikrotik_scheduler_task = None
+SCHEDULER_INTERVAL = 30  # Check every 30 seconds for SNMP devices due for polling
+MIKROTIK_SCHEDULER_INTERVAL = 5  # Check every 5 seconds for Mikrotik devices (realtime)
 MAX_CONCURRENT_POLLS = 10  # Limit concurrent device polls
+MAX_CONCURRENT_MIKROTIK_POLLS = 20  # Higher limit for faster Mikrotik polling
 
 # Configure logging
 logging.basicConfig(
