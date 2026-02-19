@@ -1140,7 +1140,15 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
             <StatusBadge status={device.status} />
           </div>
           <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-            <span className="font-mono">{device.ip_address}</span>
+            <a 
+              href={`http://${device.ip_address}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-mono hover:text-primary transition-colors underline underline-offset-2"
+              title="Open device web interface"
+            >
+              {device.ip_address}
+            </a>
             {category && (
               <Badge variant="outline" style={{ borderColor: category.color, color: category.color }}>
                 {category.name}
@@ -1171,9 +1179,9 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
         </div>
       </div>
       
-      {/* Latest Values */}
+      {/* Latest Values - sorted alphabetically */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {latestData.map((metric, index) => {
+        {[...latestData].sort((a, b) => a.metric_name.localeCompare(b.metric_name)).map((metric, index) => {
           // Get OID config for data type (SNMP devices)
           const oidConfig = device.oids?.find(o => o.name === metric.metric_name);
           const dataType = oidConfig?.data_type || 'gauge';
