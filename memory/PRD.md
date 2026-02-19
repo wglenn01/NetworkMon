@@ -141,6 +141,7 @@ Dark themed network monitoring tool where users can add devices to categories (R
 ```
 
 ## Key API Endpoints
+- `POST /api/monitoring/test-mikrotik/{device_id}` - Test Mikrotik connection and get interfaces
 - `PUT /api/alerts/acknowledge-all` - Acknowledge all unacknowledged alerts
 - `POST /api/templates/{id}/apply-to-devices` - Propagate template to linked devices
 - `PUT /api/templates/{id}` - Update template with OIDs
