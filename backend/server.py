@@ -168,17 +168,34 @@ class SNMPTemplateUpdate(BaseModel):
     brand: Optional[str] = None
     oids: Optional[List[OIDConfig]] = None
 
+# Mikrotik interface configuration for monitoring
+class MikrotikInterfaceConfig(BaseModel):
+    name: str  # Interface name (e.g., ether1, sfp1, bridge1)
+    display_name: str = ""  # Optional friendly name for display
+    warning_threshold_mbps: Optional[float] = None
+    critical_threshold_mbps: Optional[float] = None
+
 class Device(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     ip_address: str
     category_id: str
+    # Device type: "snmp" (default) or "mikrotik"
+    device_type: str = "snmp"
+    # SNMP settings
     community_string: str = "public"
     oids: List[OIDConfig] = []
+    # Mikrotik API settings
+    mikrotik_user: str = ""
+    mikrotik_password: str = ""
+    mikrotik_port: int = 8728
+    mikrotik_use_ssl: bool = False
+    mikrotik_interfaces: List[MikrotikInterfaceConfig] = []
+    # Common settings
     ping_enabled: bool = True
     snmp_enabled: bool = True
-    polling_interval: int = 300  # seconds (default 5 minutes)
+    polling_interval: int = 300  # seconds (default 5 minutes for SNMP, 5 seconds for Mikrotik)
     auto_poll: bool = True
     alerts_silenced: bool = False  # When True, no alerts are created for this device
     status: str = "unknown"  # online, offline, warning, unknown
@@ -190,8 +207,17 @@ class DeviceCreate(BaseModel):
     name: str
     ip_address: str
     category_id: str
+    device_type: str = "snmp"
+    # SNMP settings
     community_string: str = "public"
     oids: List[OIDConfig] = []
+    # Mikrotik API settings
+    mikrotik_user: str = ""
+    mikrotik_password: str = ""
+    mikrotik_port: int = 8728
+    mikrotik_use_ssl: bool = False
+    mikrotik_interfaces: List[MikrotikInterfaceConfig] = []
+    # Common settings
     ping_enabled: bool = True
     snmp_enabled: bool = True
     polling_interval: int = 300
@@ -202,8 +228,17 @@ class DeviceUpdate(BaseModel):
     name: Optional[str] = None
     ip_address: Optional[str] = None
     category_id: Optional[str] = None
+    device_type: Optional[str] = None
+    # SNMP settings
     community_string: Optional[str] = None
     oids: Optional[List[OIDConfig]] = None
+    # Mikrotik API settings
+    mikrotik_user: Optional[str] = None
+    mikrotik_password: Optional[str] = None
+    mikrotik_port: Optional[int] = None
+    mikrotik_use_ssl: Optional[bool] = None
+    mikrotik_interfaces: Optional[List[MikrotikInterfaceConfig]] = None
+    # Common settings
     ping_enabled: Optional[bool] = None
     snmp_enabled: Optional[bool] = None
     polling_interval: Optional[int] = None
