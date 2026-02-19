@@ -11,10 +11,11 @@ Dark themed network monitoring tool where users can add devices to categories (R
 - Dark themed UI
 - Data type specification for SNMP OID values (Mbps, Text, Percentage, etc.)
 - Device search functionality within categories
+- SNMP templates with editing and propagation to linked devices
 
 ## Architecture
 - **Frontend**: React with Recharts, Sonner (toasts), Shadcn UI components
-- **Backend**: FastAPI with MongoDB
+- **Backend**: FastAPI with MongoDB, pysnmp for real SNMP polling
 - **Styling**: Tailwind CSS with JetBrains Mono + IBM Plex Sans fonts
 
 ## User Personas
@@ -25,73 +26,59 @@ Dark themed network monitoring tool where users can add devices to categories (R
 - [x] Device management with CRUD operations
 - [x] Category management (Routers, Switches, Backhauls, CPEs)
 - [x] SNMPv2c monitoring with custom OIDs per device
-- [x] Ping monitoring for each device
-- [x] Threshold configuration (warning/critical)
+- [x] Ping monitoring for each device (with 3x retry resilience)
+- [x] Threshold configuration (warning/critical with > or < operators)
 - [x] Alert system with popup notifications
 - [x] Dashboard with network overview
 - [x] Device detail page with graphs
 - [x] Time range selection (1hr, 24hr, 7 days)
 - [x] SNMP templates for reusable OID configurations
+- [x] SNMP template editing with inline OID modification
+- [x] Template propagation to all linked devices
 - [x] Auto-polling with configurable intervals
 - [x] Pinnable graphs to dashboard
 - [x] Alert history on device detail page
 - [x] Online/offline device counts in category sidebar
 - [x] SNMP OID data type specification
 - [x] Device search/filter functionality
+- [x] Clickable dashboard stats (Online/Offline filters)
+- [x] Dashboard sparkline graphs for device metrics
+- [x] CSV device import
 
 ## What's Been Implemented
 
-### 2026-02-17 (Latest Session)
-- **SNMP OID Data Type Feature**:
-  - Added `data_type` field to OIDConfig model (gauge, counter, mbps, kbps, bytes, percentage, text)
-  - Data type dropdown selector in Add/Edit Device dialog
-  - Data type dropdown selector in Add/Edit Template dialog
-  - OID list displays 6 columns: OID, Name, Type, Unit, Warning, Critical
-  - Device detail page shows data type badge for each OID
-  - `formatValue` function converts values based on data type:
-    - mbps: divides by 1,000,000
-    - kbps: divides by 1,000
-    - bytes: auto-scales to KB/MB/GB
-    - percentage: shows with % unit
-    - text: displays as-is without graphing
+### December 2025 (Current Session)
+- **SNMP Template Editing & Propagation**:
+  - Inline OID editing in template dialog (Name, OID, Type, Unit, Operator, Warning/Critical thresholds)
+  - "Apply to Devices" button on each template card
+  - Backend endpoint `POST /api/templates/{id}/apply-to-devices` propagates template OIDs to linked devices
+  - Success toast notification shows how many devices were updated
 
-- **Device Search Feature**:
-  - Search input in DeviceList header
-  - Filters by device name OR IP address
-  - Shows "Found X devices matching 'query'" when searching
-  - Clear (X) button to reset search
-  - Works within active category filter
+- **Popup Alert Notifications**:
+  - Smart notification system that tracks shown alerts (prevents duplicate toasts)
+  - Device status change notifications (online → offline and vice versa)
+  - Uses `useRef` to track `shownAlertIds` and `previousDeviceStatuses`
+  - Only shows new alerts and status changes, not repeating on every poll
 
-### Previous Sessions
-- Full-stack network monitoring application
-- Dark cybernetic theme with scanline effects
-- Sidebar navigation with category filtering
-- Dashboard with stats cards, device list, alerts panel
-- Device list with status indicators and category badges
-- Device detail page with:
-  - Metric cards (CPU, Memory, Ping response time)
-  - Interactive charts (Area/Line charts with Recharts)
-  - Time range selector
-  - OID configuration display
-  - Alert history
-- Alerts page with acknowledge/delete functionality
-- SNMP Templates with CRUD operations
-- Auto-polling scheduler with configurable intervals
-- Pinnable graphs to main dashboard
-- Toast notifications for alerts
-- Deployment guide for Proxmox/Ubuntu
+### Previous Features
+- **Real SNMP Polling**: Using pysnmp with shared SnmpEngine and concurrency limits
+- **Memory Leak Fix**: Semaphore-based concurrency control for 300+ devices
+- **SNMP Data Types**: gauge, counter, mbps, kbps, bytes, percentage, text
+- **Alert Threshold Operators**: Support for `>` (greater) and `<` (less than)
+- **CSV Device Import**: Bulk import with Name, IP, Template mapping
+- **Dashboard Sparklines**: Mini graphs for device metrics
+- **Device Search**: Filter by name or IP address
+- **Ping Resilience**: 3 retry attempts before marking offline
 
-## MOCKED Components
-- **SNMP values are simulated** - `get_snmp_value` returns realistic random values based on OID patterns
-- **Ping uses actual system ping command** but may fail on non-routable IPs
+## NOT Mocked - Real Implementations
+- **SNMP Polling**: Real SNMPv2c using pysnmp library
+- **Ping**: Real system ping via subprocess (with 3 retries)
+- **Database**: Real MongoDB persistence
 
 ## Prioritized Backlog
 
-### P0 (Critical)
-- **Implement real SNMP monitoring** - Replace mocked `get_snmp_value` with actual pysnmp calls
-
 ### P1 (Important)
-- Custom date range picker with calendar
+- Custom date range picker with calendar component
 - Export device/monitoring data to CSV
 - Email/webhook notifications for critical alerts
 
@@ -101,29 +88,33 @@ Dark themed network monitoring tool where users can add devices to categories (R
 - Uptime percentage calculations
 - Multi-user support with roles
 - Dark/Light theme toggle
-
-## Next Tasks
-1. Implement actual SNMP polling with pysnmp-lextudio library
-2. Add calendar-based custom date range selection
-3. Implement data export functionality
-4. Add email/webhook notification support
+- Refactor App.js (2000+ lines) into smaller components
 
 ## File Structure
 ```
 /app/
 ├── backend/
-│   ├── server.py       # Main FastAPI app with all endpoints and models
+│   ├── server.py         # Main FastAPI app with all endpoints, models, and polling logic
+│   ├── tests/            # Pytest test files
 │   └── .env
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js        # Main component with all page components
-│   │   ├── components/ui/ # Shadcn UI components
+│   │   ├── App.js        # Main component with all page components (~2600 lines)
+│   │   ├── components/ui/# Shadcn UI components
 │   │   └── index.css     # Global styles with dark theme
 │   └── .env
 ├── deployment.md         # Deployment guide for Proxmox/Ubuntu
-└── memory/PRD.md        # This file
+├── test_reports/         # Test iteration reports
+└── memory/PRD.md         # This file
 ```
 
+## Key API Endpoints
+- `POST /api/templates/{id}/apply-to-devices` - Propagate template to linked devices
+- `PUT /api/templates/{id}` - Update template with OIDs
+- `GET /api/devices?status=online|offline` - Filter devices by status
+- `POST /api/devices/import-csv` - Bulk import devices
+- `POST /api/monitoring/poll/{device_id}` - Manual poll single device
+
 ## Testing
-- Latest test: iteration_5.json - 100% pass rate for frontend features
-- All data type and search features verified working
+- Latest test: iteration_6.json - 100% pass rate (13/13 backend, 7/7 frontend)
+- All template editing, propagation, and notification features verified working
