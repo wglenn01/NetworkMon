@@ -48,6 +48,13 @@ Dark themed network monitoring tool where users can add devices to categories (R
 ## What's Been Implemented
 
 ### December 2025 (Current Session)
+- **Silence Alerts Per Device**:
+  - Bell icon button on each device card to toggle alerts on/off
+  - "SILENCED" badge displayed on silenced devices
+  - Toggle switch in Edit Device dialog with description
+  - Backend skips alert creation for silenced devices (still polls and collects data)
+  - Backend field: `alerts_silenced: bool` in Device model
+
 - **Sound Alerts for Critical Notifications**:
   - Implemented using Web Audio API (no external audio files needed)
   - Critical alerts/device down: Urgent double beep (880Hz)
