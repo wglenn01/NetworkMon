@@ -943,6 +943,16 @@ Radio-1,10.0.0.1,Backhauls,Ubiquiti Radio,public`;
                     <Button 
                       variant="ghost" 
                       size="icon" 
+                      className={`h-6 w-6 ${device.alerts_silenced ? 'text-amber-400' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); onToggleSilence(device.id, !device.alerts_silenced); }}
+                      title={device.alerts_silenced ? 'Enable alerts' : 'Silence alerts'}
+                      data-testid={`silence-device-${device.id}`}
+                    >
+                      {device.alerts_silenced ? <BellOff className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
                       className="h-6 w-6"
                       onClick={(e) => { e.stopPropagation(); onEditDevice(device); }}
                       data-testid={`edit-device-${device.id}`}
