@@ -2188,6 +2188,29 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
                 </p>
               )}
             </div>
+            
+            {/* Silence Alerts */}
+            <div className="flex items-center justify-between p-3 border border-border/30 bg-background/30">
+              <div className="flex items-center gap-3">
+                <Switch 
+                  checked={formData.alerts_silenced}
+                  onCheckedChange={(v) => setFormData(prev => ({ ...prev, alerts_silenced: v }))}
+                  data-testid="silence-alerts-switch"
+                />
+                <div>
+                  <Label className="text-sm flex items-center gap-2">
+                    <BellOff className="w-4 h-4" />
+                    Silence Alerts
+                  </Label>
+                  <p className="text-xs text-muted-foreground">When enabled, no alerts will be created for this device</p>
+                </div>
+              </div>
+              {formData.alerts_silenced && (
+                <Badge variant="outline" className="text-amber-400 border-amber-400/30">
+                  SILENCED
+                </Badge>
+              )}
+            </div>
           </div>
           
           <Separator className="bg-border/30" />
