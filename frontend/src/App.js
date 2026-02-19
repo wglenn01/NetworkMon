@@ -1584,6 +1584,22 @@ const TemplateDialog = ({ open, onOpenChange, template, onSave }) => {
     }
   };
   
+  const updateOid = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      oids: prev.oids.map((oid, i) => {
+        if (i === index) {
+          const updated = { ...oid, [field]: value };
+          if (field === 'threshold_warning' || field === 'threshold_critical') {
+            updated[field] = value ? parseFloat(value) : null;
+          }
+          return updated;
+        }
+        return oid;
+      })
+    }));
+  };
+  
   const removeOid = (index) => {
     setFormData(prev => ({
       ...prev,
