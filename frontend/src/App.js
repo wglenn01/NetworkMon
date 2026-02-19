@@ -2731,6 +2731,16 @@ function App() {
     }
   };
   
+  const handleToggleSilence = async (id, silenced) => {
+    try {
+      await axios.put(`${API}/devices/${id}`, { alerts_silenced: silenced });
+      toast.success(silenced ? 'Alerts silenced for this device' : 'Alerts enabled for this device');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to update device');
+    }
+  };
+  
   // Category handlers
   const handleAddCategory = () => {
     setCategoryDialogOpen(true);
