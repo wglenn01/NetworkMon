@@ -712,7 +712,7 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
 };
 
 // Device List Component
-const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDevice, onDeleteDevice, onRefresh }) => {
+const DeviceList = ({ devices, categories, activeCategory, onAddDevice, onEditDevice, onDeleteDevice, onToggleSilence, onRefresh }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
