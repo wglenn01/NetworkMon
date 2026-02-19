@@ -15,6 +15,7 @@ import random
 import subprocess
 import csv
 import io
+import re
 
 # SNMP imports - handle different pysnmp versions
 try:
