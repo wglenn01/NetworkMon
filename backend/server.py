@@ -377,8 +377,14 @@ async def auto_poll_scheduler():
             await asyncio.sleep(SCHEDULER_INTERVAL)
             now = datetime.now(timezone.utc)
             
-            # Find devices due for polling
-            devices = await db.devices.find({"auto_poll": True}, {"_id": 0}).to_list(1000)
+            # Find SNMP devices due for polling (exclude Mikrotik - they have their own scheduler)
+            devices = await db.devices.find({
+                "auto_poll": True,
+                "$or": [
+                    {"device_type": {"$exists": False}},
+                    {"device_type": "snmp"}
+                ]
+            }, {"_id": 0}).to_list(1000)
             
             devices_to_poll = []
             for device in devices:
