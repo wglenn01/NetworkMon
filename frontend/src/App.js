@@ -2092,6 +2092,64 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     }));
   };
   
+  const addInterface = () => {
+    if (newInterface.name) {
+      setFormData(prev => ({
+        ...prev,
+        mikrotik_interfaces: [...prev.mikrotik_interfaces, {
+          name: newInterface.name,
+          display_name: newInterface.display_name || newInterface.name,
+          warning_threshold_mbps: newInterface.warning_threshold_mbps ? parseFloat(newInterface.warning_threshold_mbps) : null,
+          critical_threshold_mbps: newInterface.critical_threshold_mbps ? parseFloat(newInterface.critical_threshold_mbps) : null
+        }]
+      }));
+      setNewInterface({ name: '', display_name: '', warning_threshold_mbps: '', critical_threshold_mbps: '' });
+    }
+  };
+  
+  const removeInterface = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      mikrotik_interfaces: prev.mikrotik_interfaces.filter((_, i) => i !== index)
+    }));
+  };
+  
+  const testMikrotikConnection = async () => {
+    if (!device?.id) {
+      toast.error('Save the device first to test connection');
+      return;
+    }
+    setTestingConnection(true);
+    try {
+      const res = await axios.post(`${API}/monitoring/test-mikrotik/${device.id}`);
+      if (res.data.success) {
+        setAvailableInterfaces(res.data.interfaces);
+        toast.success(`Connected to ${res.data.router_name} (${res.data.system_info.board_name})`);
+      } else {
+        toast.error(`Connection failed: ${res.data.error}`);
+      }
+    } catch (err) {
+      toast.error('Failed to test connection');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+  
+  const addInterfaceFromList = (iface) => {
+    if (!formData.mikrotik_interfaces.find(i => i.name === iface.name)) {
+      setFormData(prev => ({
+        ...prev,
+        mikrotik_interfaces: [...prev.mikrotik_interfaces, {
+          name: iface.name,
+          display_name: iface.name,
+          warning_threshold_mbps: null,
+          critical_threshold_mbps: null
+        }]
+      }));
+    }
+  };
+
+  
   const handleSave = () => {
     if (!formData.name || !formData.ip_address || !formData.category_id) {
       toast.error('Please fill in all required fields');
