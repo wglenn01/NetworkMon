@@ -2751,6 +2751,8 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
               </Button>
             </div>
           </div>
+            </>
+          )}
         </div>
         
         <DialogFooter>
