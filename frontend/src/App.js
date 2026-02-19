@@ -2172,10 +2172,47 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
       <DialogContent className="dialog-glass max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-xl">{device ? 'Edit Device' : 'Add Device'}</DialogTitle>
-          <DialogDescription>Configure device monitoring settings and SNMP OIDs</DialogDescription>
+          <DialogDescription>Configure device monitoring settings</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {/* Device Type Selection */}
+          <div className="p-3 border border-border/30 bg-background/30 space-y-3">
+            <Label className="text-xs uppercase tracking-wider">Device Type</Label>
+            <div className="flex gap-4">
+              <label className={`flex items-center gap-2 p-3 border cursor-pointer transition-colors ${formData.device_type === 'snmp' ? 'border-primary bg-primary/10' : 'border-border/30 hover:border-border/50'}`}>
+                <input
+                  type="radio"
+                  name="device_type"
+                  value="snmp"
+                  checked={formData.device_type === 'snmp'}
+                  onChange={() => setFormData(prev => ({ ...prev, device_type: 'snmp', polling_interval: 300 }))}
+                  className="hidden"
+                />
+                <Server className="w-5 h-5" />
+                <div>
+                  <p className="font-medium">SNMP Device</p>
+                  <p className="text-xs text-muted-foreground">Standard SNMP monitoring</p>
+                </div>
+              </label>
+              <label className={`flex items-center gap-2 p-3 border cursor-pointer transition-colors ${formData.device_type === 'mikrotik' ? 'border-primary bg-primary/10' : 'border-border/30 hover:border-border/50'}`}>
+                <input
+                  type="radio"
+                  name="device_type"
+                  value="mikrotik"
+                  checked={formData.device_type === 'mikrotik'}
+                  onChange={() => setFormData(prev => ({ ...prev, device_type: 'mikrotik', polling_interval: 5 }))}
+                  className="hidden"
+                />
+                <Router className="w-5 h-5" />
+                <div>
+                  <p className="font-medium">Mikrotik API</p>
+                  <p className="text-xs text-muted-foreground">Realtime RouterOS API</p>
+                </div>
+              </label>
+            </div>
+          </div>
+          
           {/* Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -2217,17 +2254,187 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wider">Community String</Label>
-              <Input 
-                value={formData.community_string}
-                onChange={(e) => setFormData(prev => ({ ...prev, community_string: e.target.value }))}
-                className="input-technical"
-                placeholder="public"
-                data-testid="device-community-input"
-              />
-            </div>
+            {formData.device_type === 'snmp' ? (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider">Community String</Label>
+                <Input 
+                  value={formData.community_string}
+                  onChange={(e) => setFormData(prev => ({ ...prev, community_string: e.target.value }))}
+                  className="input-technical"
+                  placeholder="public"
+                  data-testid="device-community-input"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wider">API Port</Label>
+                <Input 
+                  type="number"
+                  value={formData.mikrotik_port}
+                  onChange={(e) => setFormData(prev => ({ ...prev, mikrotik_port: parseInt(e.target.value) || 8728 }))}
+                  className="input-technical"
+                  placeholder="9001"
+                  data-testid="mikrotik-port-input"
+                />
+              </div>
+            )}
           </div>
+          
+          {/* Mikrotik Credentials */}
+          {formData.device_type === 'mikrotik' && (
+            <div className="space-y-4 p-3 border border-primary/30 bg-primary/5">
+              <Label className="text-xs uppercase tracking-wider flex items-center gap-2">
+                <Router className="w-4 h-4" />
+                Mikrotik API Credentials
+              </Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Username</Label>
+                  <Input 
+                    value={formData.mikrotik_user}
+                    onChange={(e) => setFormData(prev => ({ ...prev, mikrotik_user: e.target.value }))}
+                    className="input-technical"
+                    placeholder="admin"
+                    data-testid="mikrotik-user-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Password</Label>
+                  <Input 
+                    type="password"
+                    value={formData.mikrotik_password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, mikrotik_password: e.target.value }))}
+                    className="input-technical"
+                    placeholder="••••••••"
+                    data-testid="mikrotik-password-input"
+                  />
+                </div>
+              </div>
+              
+              {device && (
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="btn-technical"
+                    onClick={testMikrotikConnection}
+                    disabled={testingConnection}
+                  >
+                    {testingConnection ? (
+                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                    ) : (
+                      <Wifi className="w-3 h-3 mr-1" />
+                    )}
+                    Test Connection
+                  </Button>
+                  {availableInterfaces.length > 0 && (
+                    <span className="text-xs text-emerald-400">
+                      ✓ {availableInterfaces.length} interfaces found
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Mikrotik Interfaces to Monitor */}
+          {formData.device_type === 'mikrotik' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider">
+                  Interfaces to Monitor ({formData.mikrotik_interfaces.length})
+                </Label>
+              </div>
+              
+              {/* Available interfaces from test */}
+              {availableInterfaces.length > 0 && (
+                <div className="p-2 border border-border/30 bg-background/30 space-y-2">
+                  <p className="text-xs text-muted-foreground">Click to add from discovered interfaces:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {availableInterfaces.filter(i => !i.disabled && i.running).map((iface, idx) => (
+                      <Button
+                        key={idx}
+                        variant="outline"
+                        size="sm"
+                        className="text-[10px] h-6"
+                        onClick={() => addInterfaceFromList(iface)}
+                        disabled={formData.mikrotik_interfaces.find(i => i.name === iface.name)}
+                      >
+                        {iface.name} ({iface.type})
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Selected interfaces */}
+              <ScrollArea className="max-h-[150px]">
+                <div className="space-y-2">
+                  {formData.mikrotik_interfaces.map((iface, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-background/50 border border-border/20">
+                      <span className="text-sm font-mono flex-1">{iface.name}</span>
+                      <Input
+                        value={iface.display_name || ''}
+                        onChange={(e) => {
+                          const updated = [...formData.mikrotik_interfaces];
+                          updated[index] = { ...updated[index], display_name: e.target.value };
+                          setFormData(prev => ({ ...prev, mikrotik_interfaces: updated }));
+                        }}
+                        className="input-technical text-xs w-24"
+                        placeholder="Label"
+                      />
+                      <Input
+                        type="number"
+                        value={iface.warning_threshold_mbps || ''}
+                        onChange={(e) => {
+                          const updated = [...formData.mikrotik_interfaces];
+                          updated[index] = { ...updated[index], warning_threshold_mbps: e.target.value ? parseFloat(e.target.value) : null };
+                          setFormData(prev => ({ ...prev, mikrotik_interfaces: updated }));
+                        }}
+                        className="input-technical text-xs w-20"
+                        placeholder="Warn Mbps"
+                      />
+                      <Input
+                        type="number"
+                        value={iface.critical_threshold_mbps || ''}
+                        onChange={(e) => {
+                          const updated = [...formData.mikrotik_interfaces];
+                          updated[index] = { ...updated[index], critical_threshold_mbps: e.target.value ? parseFloat(e.target.value) : null };
+                          setFormData(prev => ({ ...prev, mikrotik_interfaces: updated }));
+                        }}
+                        className="input-technical text-xs w-20"
+                        placeholder="Crit Mbps"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 hover:text-destructive"
+                        onClick={() => removeInterface(index)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              {/* Add interface manually */}
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <Input
+                    value={newInterface.name}
+                    onChange={(e) => setNewInterface(prev => ({ ...prev, name: e.target.value }))}
+                    className="input-technical text-xs"
+                    placeholder="Interface name (e.g., ether1, sfp1)"
+                  />
+                </div>
+                <Button variant="outline" size="sm" className="btn-technical" onClick={addInterface}>
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add
+                </Button>
+              </div>
+            </div>
+          )}
           
           {/* Monitoring Options */}
           <div className="space-y-4">
