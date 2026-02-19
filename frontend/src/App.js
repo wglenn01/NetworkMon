@@ -2901,6 +2901,7 @@ function App() {
               <AlertsPage 
                 alerts={alerts}
                 onAcknowledge={handleAcknowledgeAlert}
+                onAcknowledgeAll={handleAcknowledgeAllAlerts}
                 onDelete={handleDeleteAlert}
                 onClear={handleClearAlerts}
                 onRefresh={fetchData}
