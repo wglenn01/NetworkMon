@@ -28,6 +28,64 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// Sound alert utility - plays a beep for critical alerts
+const playAlertSound = (type = 'critical') => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    
+    const audioCtx = new AudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    if (type === 'critical') {
+      // Urgent double beep for critical alerts
+      oscillator.frequency.value = 880; // A5 note
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.15);
+      
+      // Second beep
+      setTimeout(() => {
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.frequency.value = 880;
+        osc2.type = 'sine';
+        gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc2.start(audioCtx.currentTime);
+        osc2.stop(audioCtx.currentTime + 0.15);
+      }, 200);
+    } else if (type === 'warning') {
+      // Single lower beep for warnings
+      oscillator.frequency.value = 440; // A4 note
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.2);
+    } else if (type === 'success') {
+      // Pleasant chime for recovery
+      oscillator.frequency.value = 523; // C5 note
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.3);
+    }
+  } catch (e) {
+    // Silently fail if audio context is not available
+    console.log('Audio not available');
+  }
+};
+
 // Format value based on data type - returns { display, unit } for auto-scaling types
 const formatValue = (value, dataType, unit) => {
   if (value === null || value === undefined) return '-';
