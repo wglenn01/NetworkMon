@@ -1930,6 +1930,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     snmp_enabled: true,
     polling_interval: 300,
     auto_poll: true,
+    alerts_silenced: false,
     oids: []
   });
   const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_operator: 'gt', threshold_warning: '', threshold_critical: '' });
