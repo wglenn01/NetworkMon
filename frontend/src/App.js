@@ -1094,6 +1094,36 @@ const DeviceDetail = ({ categories, pinnedGraphs, onPinGraph, onUnpinGraph }) =>
     });
   });
   
+  // Group Mikrotik data by metric name
+  const mikrotikMetrics = {};
+  monitoringData.filter(d => d.metric_type === 'mikrotik').forEach(d => {
+    if (!mikrotikMetrics[d.metric_name]) {
+      mikrotikMetrics[d.metric_name] = { data: [], unit: d.unit };
+    }
+    mikrotikMetrics[d.metric_name].data.push({
+      time: new Date(d.timestamp).toLocaleTimeString(),
+      timestamp: new Date(d.timestamp),
+      value: typeof d.value === 'number' ? d.value : parseFloat(d.value) || 0
+    });
+  });
+  
+  // Sort Mikrotik data by timestamp
+  Object.values(mikrotikMetrics).forEach(m => {
+    m.data.sort((a, b) => a.timestamp - b.timestamp);
+  });
+  
+  // Separate Mikrotik metrics into throughput (RX/TX) and system metrics
+  const mikrotikThroughputMetrics = Object.entries(mikrotikMetrics)
+    .filter(([name]) => name.includes(' RX') || name.includes(' TX'))
+    .reduce((acc, [name, val]) => ({ ...acc, [name]: val }), {});
+  
+  const mikrotikSystemMetrics = Object.entries(mikrotikMetrics)
+    .filter(([name]) => !name.includes(' RX') && !name.includes(' TX'))
+    .reduce((acc, [name, val]) => ({ ...acc, [name]: val }), {});
+  
+  // Check if this is a Mikrotik device
+  const isMikrotikDevice = device.device_type === 'mikrotik';
+  
   return (
     <div className="space-y-6 animate-fade-in" data-testid="device-detail">
       {/* Header */}
