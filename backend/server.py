@@ -281,18 +281,19 @@ def deserialize_datetime(doc: dict, fields: List[str]) -> dict:
             doc[field] = datetime.fromisoformat(doc[field])
     return doc
 
-async def ping_host(ip: str) -> Optional[float]:
-    """Ping a host and return response time in ms"""
-    try:
-        result = subprocess.run(
-            ['ping', '-c', '1', '-W', '2', ip],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        if result.returncode == 0:
-            # Parse ping output for time
-            output = result.stdout
+async def ping_host(ip: str, retries: int = 3, timeout: int = 3) -> Optional[float]:
+    """Ping a host and return response time in ms. Retries up to 3 times before failing."""
+    for attempt in range(retries):
+        try:
+            result = subprocess.run(
+                ['ping', '-c', '1', '-W', str(timeout), ip],
+                capture_output=True,
+                text=True,
+                timeout=timeout + 2
+            )
+            if result.returncode == 0:
+                # Parse ping output for time
+                output = result.stdout
             if 'time=' in output:
                 time_str = output.split('time=')[1].split()[0]
                 return float(time_str.replace('ms', ''))
