@@ -940,21 +940,26 @@ async def poll_single_device(device: dict):
             logger.info(f"Auto-resolved {result.modified_count} alert(s) for device {device_name}")
     
     # Create new alerts (but avoid duplicates within short time window)
-    for alert_create in alerts_to_create:
-        # Check if similar alert exists in last 5 minutes
-        recent_cutoff = (now - timedelta(minutes=5)).isoformat()
-        existing = await db.alerts.find_one({
-            "device_id": alert_create.device_id,
-            "alert_type": alert_create.alert_type,
-            "metric_name": alert_create.metric_name,
-            "acknowledged": False,
-            "created_at": {"$gte": recent_cutoff}
-        })
-        
-        if not existing:
-            alert = Alert(**alert_create.model_dump())
-            await db.alerts.insert_one(serialize_doc(alert.model_dump()))
-            logger.info(f"Created alert: {alert_create.message}")
+    # Skip alert creation if device has alerts silenced
+    if not device.get('alerts_silenced', False):
+        for alert_create in alerts_to_create:
+            # Check if similar alert exists in last 5 minutes
+            recent_cutoff = (now - timedelta(minutes=5)).isoformat()
+            existing = await db.alerts.find_one({
+                "device_id": alert_create.device_id,
+                "alert_type": alert_create.alert_type,
+                "metric_name": alert_create.metric_name,
+                "acknowledged": False,
+                "created_at": {"$gte": recent_cutoff}
+            })
+            
+            if not existing:
+                alert = Alert(**alert_create.model_dump())
+                await db.alerts.insert_one(serialize_doc(alert.model_dump()))
+                logger.info(f"Created alert: {alert_create.message}")
+    else:
+        if alerts_to_create:
+            logger.info(f"Skipped {len(alerts_to_create)} alert(s) for {device_name} - alerts silenced")
 
 @api_router.post("/monitoring/poll-all")
 async def poll_all_devices(background_tasks: BackgroundTasks):
