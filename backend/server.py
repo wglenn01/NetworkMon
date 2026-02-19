@@ -294,13 +294,19 @@ async def ping_host(ip: str, retries: int = 3, timeout: int = 3) -> Optional[flo
             if result.returncode == 0:
                 # Parse ping output for time
                 output = result.stdout
-            if 'time=' in output:
-                time_str = output.split('time=')[1].split()[0]
-                return float(time_str.replace('ms', ''))
-        return None
-    except Exception as e:
-        logger.error(f"Ping error for {ip}: {e}")
-        return None
+                if 'time=' in output:
+                    time_str = output.split('time=')[1].split()[0]
+                    return float(time_str.replace('ms', ''))
+            # Ping failed, try again if we have retries left
+            if attempt < retries - 1:
+                await asyncio.sleep(0.5)  # Brief pause before retry
+                continue
+        except Exception as e:
+            if attempt < retries - 1:
+                await asyncio.sleep(0.5)
+                continue
+            logger.debug(f"Ping error for {ip} after {retries} attempts: {e}")
+    return None
 
 # Global SNMP engine - reuse to prevent memory leaks
 _snmp_engine = None
