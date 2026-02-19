@@ -48,6 +48,20 @@ Dark themed network monitoring tool where users can add devices to categories (R
 ## What's Been Implemented
 
 ### December 2025 (Current Session)
+- **Sound Alerts for Critical Notifications**:
+  - Implemented using Web Audio API (no external audio files needed)
+  - Critical alerts/device down: Urgent double beep (880Hz)
+  - Warning alerts: Single lower beep (440Hz)
+  - Device recovery: Pleasant chime (523Hz)
+  - Only plays once per poll cycle (not for each individual alert)
+
+- **Acknowledge All Alerts Button**:
+  - New "Acknowledge All (X)" button on Alerts page
+  - Shows count of unacknowledged alerts
+  - Only visible when there are unacknowledged alerts
+  - Backend endpoint `PUT /api/alerts/acknowledge-all`
+  - Green styling to distinguish from destructive actions
+
 - **SNMP Template Editing & Propagation**:
   - Inline OID editing in template dialog (Name, OID, Type, Unit, Operator, Warning/Critical thresholds)
   - "Apply to Devices" button on each template card
