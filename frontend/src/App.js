@@ -1925,13 +1925,22 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     name: '',
     ip_address: '',
     category_id: '',
+    device_type: 'snmp',
+    // SNMP fields
     community_string: 'public',
+    oids: [],
+    // Mikrotik fields
+    mikrotik_user: '',
+    mikrotik_password: '',
+    mikrotik_port: 9001,
+    mikrotik_use_ssl: false,
+    mikrotik_interfaces: [],
+    // Common fields
     ping_enabled: true,
     snmp_enabled: true,
     polling_interval: 300,
     auto_poll: true,
-    alerts_silenced: false,
-    oids: []
+    alerts_silenced: false
   });
   const [newOid, setNewOid] = useState({ oid: '', name: '', unit: '', data_type: 'gauge', threshold_operator: 'gt', threshold_warning: '', threshold_critical: '' });
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -1939,8 +1948,14 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
   const [newTemplateName, setNewTemplateName] = useState('');
   const [newTemplateBrand, setNewTemplateBrand] = useState('');
   const [newTemplateDesc, setNewTemplateDesc] = useState('');
+  const [newInterface, setNewInterface] = useState({ name: '', display_name: '', warning_threshold_mbps: '', critical_threshold_mbps: '' });
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [availableInterfaces, setAvailableInterfaces] = useState([]);
   
   const pollingIntervals = [
+    { value: 5, label: '5 seconds (realtime)' },
+    { value: 10, label: '10 seconds' },
+    { value: 15, label: '15 seconds' },
     { value: 30, label: '30 seconds' },
     { value: 60, label: '1 minute' },
     { value: 120, label: '2 minutes' },
@@ -1949,6 +1964,14 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
     { value: 900, label: '15 minutes' },
     { value: 1800, label: '30 minutes' },
     { value: 3600, label: '1 hour' },
+  ];
+  
+  const mikrotikPollingIntervals = [
+    { value: 5, label: '5 seconds (realtime)' },
+    { value: 10, label: '10 seconds' },
+    { value: 15, label: '15 seconds' },
+    { value: 30, label: '30 seconds' },
+    { value: 60, label: '1 minute' },
   ];
   
   const dataTypes = [
