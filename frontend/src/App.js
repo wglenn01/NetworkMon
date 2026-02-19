@@ -2913,6 +2913,7 @@ function App() {
                 onAddDevice={handleAddDevice}
                 onEditDevice={handleEditDevice}
                 onDeleteDevice={handleDeleteDevice}
+                onToggleSilence={handleToggleSilence}
                 onRefresh={fetchDevices}
               />
             } />
