@@ -1133,8 +1133,87 @@ async def poll_device(device_id: str, background_tasks: BackgroundTasks):
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    background_tasks.add_task(poll_single_device, device)
+    # Route to appropriate polling function based on device type
+    if device.get('device_type') == 'mikrotik':
+        background_tasks.add_task(poll_mikrotik_device, device)
+    else:
+        background_tasks.add_task(poll_single_device, device)
     return {"message": "Polling started"}
+
+@api_router.post("/monitoring/test-mikrotik/{device_id}")
+async def test_mikrotik_connection(device_id: str):
+    """Test Mikrotik API connection and return available interfaces"""
+    device = await db.devices.find_one({"id": device_id}, {"_id": 0})
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    
+    if device.get('device_type') != 'mikrotik':
+        raise HTTPException(status_code=400, detail="Device is not a Mikrotik device")
+    
+    try:
+        connection = routeros_api.RouterOsApiPool(
+            host=device['ip_address'],
+            username=device.get('mikrotik_user', 'admin'),
+            password=device.get('mikrotik_password', ''),
+            port=device.get('mikrotik_port', 8728),
+            use_ssl=device.get('mikrotik_use_ssl', False),
+            plaintext_login=True,
+            ssl_verify=False
+        )
+        api = connection.get_api()
+        
+        # Get system identity
+        identity = api.get_resource('/system/identity').get()
+        router_name = identity[0].get('name', 'Unknown') if identity else 'Unknown'
+        
+        # Get system resource
+        resource = api.get_resource('/system/resource').get()
+        system_info = {}
+        if resource:
+            res = resource[0]
+            system_info = {
+                'board_name': res.get('board-name', 'Unknown'),
+                'version': res.get('version', 'Unknown'),
+                'cpu_load': res.get('cpu-load', 0),
+                'uptime': res.get('uptime', '0s'),
+                'total_memory': int(res.get('total-memory', 0)),
+                'free_memory': int(res.get('free-memory', 0))
+            }
+        
+        # Get available interfaces
+        interfaces = api.get_resource('/interface').get()
+        interface_list = []
+        for iface in interfaces:
+            interface_list.append({
+                'name': iface.get('name'),
+                'type': iface.get('type'),
+                'running': iface.get('running') == 'true',
+                'disabled': iface.get('disabled') == 'true'
+            })
+        
+        # Check for temperature support
+        has_temperature = False
+        try:
+            health = api.get_resource('/system/health').get()
+            has_temperature = len(health) > 0
+        except:
+            pass
+        
+        connection.disconnect()
+        
+        return {
+            "success": True,
+            "router_name": router_name,
+            "system_info": system_info,
+            "interfaces": interface_list,
+            "has_temperature": has_temperature
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 async def poll_single_device(device: dict):
     """Poll a single device for metrics with auto-resolution of alerts"""
