@@ -414,17 +414,24 @@ async def auto_poll_scheduler():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application lifecycle - start/stop background scheduler"""
-    global scheduler_task
+    """Manage application lifecycle - start/stop background schedulers"""
+    global scheduler_task, mikrotik_scheduler_task
     # Startup
     scheduler_task = asyncio.create_task(auto_poll_scheduler())
-    logger.info("Application startup complete - scheduler running")
+    mikrotik_scheduler_task = asyncio.create_task(mikrotik_poll_scheduler())
+    logger.info("Application startup complete - schedulers running (SNMP + Mikrotik)")
     yield
     # Shutdown
     if scheduler_task:
         scheduler_task.cancel()
         try:
             await scheduler_task
+        except asyncio.CancelledError:
+            pass
+    if mikrotik_scheduler_task:
+        mikrotik_scheduler_task.cancel()
+        try:
+            await mikrotik_scheduler_task
         except asyncio.CancelledError:
             pass
     client.close()
