@@ -56,11 +56,318 @@ logger = logging.getLogger(__name__)
 
 # Polling semaphore to limit concurrent device polls
 _poll_semaphore = asyncio.Semaphore(MAX_CONCURRENT_POLLS)
+_mikrotik_poll_semaphore = asyncio.Semaphore(MAX_CONCURRENT_MIKROTIK_POLLS)
+
+# Cache for Mikrotik interface byte counters (for calculating throughput)
+_mikrotik_interface_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
 
 async def poll_device_with_limit(device):
     """Poll a device with concurrency limit"""
     async with _poll_semaphore:
         await poll_single_device(device)
+
+async def poll_mikrotik_with_limit(device):
+    """Poll a Mikrotik device with concurrency limit"""
+    async with _mikrotik_poll_semaphore:
+        await poll_mikrotik_device(device)
+
+async def poll_mikrotik_device(device: dict):
+    """Poll a Mikrotik device via RouterOS API for CPU, Memory, Uptime, Temperature, and Interface throughput"""
+    device_id = device['id']
+    device_name = device['name']
+    ip = device['ip_address']
+    now = datetime.now(timezone.utc)
+    
+    try:
+        # Connect to Mikrotik API
+        connection = routeros_api.RouterOsApiPool(
+            host=ip,
+            username=device.get('mikrotik_user', 'admin'),
+            password=device.get('mikrotik_password', ''),
+            port=device.get('mikrotik_port', 8728),
+            use_ssl=device.get('mikrotik_use_ssl', False),
+            plaintext_login=True,
+            ssl_verify=False
+        )
+        api = connection.get_api()
+        
+        # Update status to online
+        await db.devices.update_one(
+            {"id": device_id},
+            {"$set": {"status": "online", "last_seen": now.isoformat(), "last_polled": now.isoformat()}}
+        )
+        
+        alerts_to_create = []
+        
+        # Get system resource (CPU, Memory, Uptime)
+        try:
+            resource = api.get_resource('/system/resource')
+            resource_data = resource.get()
+            if resource_data:
+                res = resource_data[0]
+                
+                # CPU Load
+                cpu_load = float(res.get('cpu-load', 0))
+                await db.monitoring_data.insert_one(serialize_doc(MonitoringData(
+                    device_id=device_id,
+                    metric_type="mikrotik",
+                    metric_name="CPU Load",
+                    value=cpu_load,
+                    unit="%"
+                ).model_dump()))
+                
+                # Memory Usage (calculate percentage)
+                total_mem = int(res.get('total-memory', 1))
+                free_mem = int(res.get('free-memory', 0))
+                mem_used_pct = ((total_mem - free_mem) / total_mem) * 100 if total_mem > 0 else 0
+                await db.monitoring_data.insert_one(serialize_doc(MonitoringData(
+                    device_id=device_id,
+                    metric_type="mikrotik",
+                    metric_name="Memory Usage",
+                    value=round(mem_used_pct, 1),
+                    unit="%"
+                ).model_dump()))
+                
+                # Uptime (in seconds, convert to human readable later in frontend)
+                uptime_str = res.get('uptime', '0s')
+                uptime_seconds = parse_mikrotik_uptime(uptime_str)
+                await db.monitoring_data.insert_one(serialize_doc(MonitoringData(
+                    device_id=device_id,
+                    metric_type="mikrotik",
+                    metric_name="Uptime",
+                    value=uptime_seconds,
+                    unit="seconds"
+                ).model_dump()))
+                
+        except Exception as e:
+            logger.error(f"Error getting Mikrotik resource for {device_name}: {e}")
+        
+        # Get temperature from /system/health
+        try:
+            health = api.get_resource('/system/health')
+            health_data = health.get()
+            if health_data:
+                for h in health_data:
+                    # Different Mikrotik models report temperature differently
+                    temp_value = None
+                    temp_name = None
+                    
+                    if 'temperature' in h.get('name', '').lower() or 'cpu' in h.get('name', '').lower():
+                        temp_name = h.get('name', 'Temperature')
+                        temp_value = h.get('value')
+                    
+                    if temp_value is not None:
+                        try:
+                            temp_float = float(temp_value)
+                            await db.monitoring_data.insert_one(serialize_doc(MonitoringData(
+                                device_id=device_id,
+                                metric_type="mikrotik",
+                                metric_name=temp_name,
+                                value=temp_float,
+                                unit="°C"
+                            ).model_dump()))
+                        except (ValueError, TypeError):
+                            pass
+        except Exception as e:
+            # Some Mikrotik models don't have /system/health
+            logger.debug(f"No health data for {device_name}: {e}")
+        
+        # Get interface statistics
+        interfaces_to_monitor = device.get('mikrotik_interfaces', [])
+        if interfaces_to_monitor:
+            try:
+                interface_resource = api.get_resource('/interface')
+                all_interfaces = interface_resource.get()
+                
+                # Initialize device cache if not exists
+                if device_id not in _mikrotik_interface_cache:
+                    _mikrotik_interface_cache[device_id] = {}
+                
+                for iface_config in interfaces_to_monitor:
+                    iface_name = iface_config.get('name') if isinstance(iface_config, dict) else iface_config
+                    display_name = iface_config.get('display_name', iface_name) if isinstance(iface_config, dict) else iface_name
+                    
+                    # Find the interface in the API response
+                    iface_data = next((i for i in all_interfaces if i.get('name') == iface_name), None)
+                    
+                    if iface_data:
+                        rx_bytes = int(iface_data.get('rx-byte', 0))
+                        tx_bytes = int(iface_data.get('tx-byte', 0))
+                        
+                        # Calculate throughput (bits per second) from the difference
+                        prev_data = _mikrotik_interface_cache[device_id].get(iface_name)
+                        if prev_data:
+                            time_diff = (now - prev_data['timestamp']).total_seconds()
+                            if time_diff > 0:
+                                rx_diff = rx_bytes - prev_data['rx_bytes']
+                                tx_diff = tx_bytes - prev_data['tx_bytes']
+                                
+                                # Handle counter wrap
+                                if rx_diff < 0:
+                                    rx_diff = rx_bytes
+                                if tx_diff < 0:
+                                    tx_diff = tx_bytes
+                                
+                                # Convert to Mbps (bytes -> bits -> megabits)
+                                rx_mbps = (rx_diff * 8 / time_diff) / 1_000_000
+                                tx_mbps = (tx_diff * 8 / time_diff) / 1_000_000
+                                
+                                # Store RX throughput
+                                await db.monitoring_data.insert_one(serialize_doc(MonitoringData(
+                                    device_id=device_id,
+                                    metric_type="mikrotik",
+                                    metric_name=f"{display_name} RX",
+                                    value=round(rx_mbps, 2),
+                                    unit="Mbps"
+                                ).model_dump()))
+                                
+                                # Store TX throughput
+                                await db.monitoring_data.insert_one(serialize_doc(MonitoringData(
+                                    device_id=device_id,
+                                    metric_type="mikrotik",
+                                    metric_name=f"{display_name} TX",
+                                    value=round(tx_mbps, 2),
+                                    unit="Mbps"
+                                ).model_dump()))
+                                
+                                # Check thresholds for alerts
+                                if not device.get('alerts_silenced', False):
+                                    warning_thresh = iface_config.get('warning_threshold_mbps') if isinstance(iface_config, dict) else None
+                                    critical_thresh = iface_config.get('critical_threshold_mbps') if isinstance(iface_config, dict) else None
+                                    
+                                    max_throughput = max(rx_mbps, tx_mbps)
+                                    if critical_thresh and max_throughput >= critical_thresh:
+                                        alerts_to_create.append(AlertCreate(
+                                            device_id=device_id,
+                                            device_name=device_name,
+                                            alert_type="threshold_critical",
+                                            metric_name=f"{display_name} Throughput",
+                                            message=f"{display_name} throughput critical: {max_throughput:.2f} Mbps (>= {critical_thresh} Mbps)",
+                                            value=max_throughput,
+                                            threshold=critical_thresh
+                                        ))
+                                    elif warning_thresh and max_throughput >= warning_thresh:
+                                        alerts_to_create.append(AlertCreate(
+                                            device_id=device_id,
+                                            device_name=device_name,
+                                            alert_type="threshold_warning",
+                                            metric_name=f"{display_name} Throughput",
+                                            message=f"{display_name} throughput warning: {max_throughput:.2f} Mbps (>= {warning_thresh} Mbps)",
+                                            value=max_throughput,
+                                            threshold=warning_thresh
+                                        ))
+                        
+                        # Update cache
+                        _mikrotik_interface_cache[device_id][iface_name] = {
+                            'rx_bytes': rx_bytes,
+                            'tx_bytes': tx_bytes,
+                            'timestamp': now
+                        }
+                        
+            except Exception as e:
+                logger.error(f"Error getting Mikrotik interfaces for {device_name}: {e}")
+        
+        # Create alerts
+        if not device.get('alerts_silenced', False):
+            for alert_create in alerts_to_create:
+                recent_cutoff = (now - timedelta(minutes=5)).isoformat()
+                existing = await db.alerts.find_one({
+                    "device_id": alert_create.device_id,
+                    "alert_type": alert_create.alert_type,
+                    "metric_name": alert_create.metric_name,
+                    "acknowledged": False,
+                    "created_at": {"$gte": recent_cutoff}
+                })
+                if not existing:
+                    alert = Alert(**alert_create.model_dump())
+                    await db.alerts.insert_one(serialize_doc(alert.model_dump()))
+                    logger.info(f"Created alert: {alert_create.message}")
+        
+        connection.disconnect()
+        
+    except Exception as e:
+        logger.error(f"Error polling Mikrotik device {device_name} ({ip}): {e}")
+        # Mark device as offline
+        await db.devices.update_one(
+            {"id": device_id},
+            {"$set": {"status": "offline", "last_polled": now.isoformat()}}
+        )
+        
+        # Create device down alert if not silenced
+        if not device.get('alerts_silenced', False):
+            recent_cutoff = (now - timedelta(minutes=5)).isoformat()
+            existing = await db.alerts.find_one({
+                "device_id": device_id,
+                "alert_type": "device_down",
+                "acknowledged": False,
+                "created_at": {"$gte": recent_cutoff}
+            })
+            if not existing:
+                alert = Alert(**AlertCreate(
+                    device_id=device_id,
+                    device_name=device_name,
+                    alert_type="device_down",
+                    metric_name="API Connection",
+                    message=f"Mikrotik device {device_name} ({ip}) API connection failed: {str(e)}"
+                ).model_dump())
+                await db.alerts.insert_one(serialize_doc(alert.model_dump()))
+
+def parse_mikrotik_uptime(uptime_str: str) -> int:
+    """Parse Mikrotik uptime string (e.g., '1w2d3h4m5s') to seconds"""
+    import re
+    total_seconds = 0
+    patterns = [
+        (r'(\d+)w', 604800),  # weeks
+        (r'(\d+)d', 86400),   # days
+        (r'(\d+)h', 3600),    # hours
+        (r'(\d+)m', 60),      # minutes
+        (r'(\d+)s', 1),       # seconds
+    ]
+    for pattern, multiplier in patterns:
+        match = re.search(pattern, uptime_str)
+        if match:
+            total_seconds += int(match.group(1)) * multiplier
+    return total_seconds
+
+async def mikrotik_poll_scheduler():
+    """Background task for fast polling of Mikrotik devices"""
+    logger.info("Mikrotik fast-poll scheduler started")
+    while True:
+        try:
+            await asyncio.sleep(MIKROTIK_SCHEDULER_INTERVAL)
+            now = datetime.now(timezone.utc)
+            
+            # Find Mikrotik devices due for polling
+            devices = await db.devices.find({
+                "auto_poll": True,
+                "device_type": "mikrotik"
+            }, {"_id": 0}).to_list(1000)
+            
+            devices_to_poll = []
+            for device in devices:
+                interval = device.get('polling_interval', 5)  # Default 5 seconds for Mikrotik
+                last_polled = device.get('last_polled')
+                
+                should_poll = False
+                if last_polled is None:
+                    should_poll = True
+                else:
+                    if isinstance(last_polled, str):
+                        last_polled = datetime.fromisoformat(last_polled)
+                    if (now - last_polled).total_seconds() >= interval:
+                        should_poll = True
+                
+                if should_poll:
+                    devices_to_poll.append(device)
+            
+            # Poll devices with concurrency limit
+            if devices_to_poll:
+                logger.debug(f"Mikrotik polling {len(devices_to_poll)} devices")
+                tasks = [poll_mikrotik_with_limit(d) for d in devices_to_poll]
+                await asyncio.gather(*tasks, return_exceptions=True)
+                    
+        except Exception as e:
+            logger.error(f"Error in Mikrotik poll scheduler: {e}")
 
 async def auto_poll_scheduler():
     """Background task that continuously checks and polls devices based on their intervals"""
