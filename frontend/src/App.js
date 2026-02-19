@@ -2520,12 +2520,14 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
             </div>
           </div>
           
-          <Separator className="bg-border/30" />
-          
-          {/* SNMP Template Selection */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs uppercase tracking-wider">SNMP Template</Label>
+          {formData.device_type === 'snmp' && (
+            <>
+              <Separator className="bg-border/30" />
+              
+              {/* SNMP Template Selection */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs uppercase tracking-wider">SNMP Template</Label>
               <div className="flex items-center gap-2">
                 {formData.oids.length > 0 && (
                   <Button 
