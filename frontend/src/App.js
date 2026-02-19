@@ -7,7 +7,8 @@ import {
   Activity, Server, Wifi, AlertTriangle, Shield, Home, 
   Plus, Trash2, Edit, RefreshCw, Settings, ChevronRight,
   Router, GitBranch, Radio, Zap, X, Check, Clock, TrendingUp,
-  FileText, Copy, Save, Pin, PinOff, History, Search, Upload, Download
+  FileText, Copy, Save, Pin, PinOff, History, Search, Upload, Download,
+  BellOff, Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
