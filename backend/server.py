@@ -79,6 +79,34 @@ async def poll_mikrotik_device(device: dict):
     ip = device['ip_address']
     now = datetime.now(timezone.utc)
     
+    # Perform ping first if enabled
+    if device.get('ping_enabled', True):
+        try:
+            ping_result = await asyncio.get_event_loop().run_in_executor(
+                None, 
+                lambda: subprocess.run(
+                    ['ping', '-c', '1', '-W', '2', ip],
+                    capture_output=True,
+                    text=True
+                )
+            )
+            
+            if ping_result.returncode == 0:
+                # Parse response time
+                import re
+                match = re.search(r'time[=<](\d+\.?\d*)', ping_result.stdout)
+                if match:
+                    response_time = float(match.group(1))
+                    await db.monitoring_data.insert_one(serialize_doc(MonitoringData(
+                        device_id=device_id,
+                        metric_type="ping",
+                        metric_name="Response Time",
+                        value=response_time,
+                        unit="ms"
+                    ).model_dump()))
+        except Exception as e:
+            logger.debug(f"Ping failed for {device_name}: {e}")
+    
     try:
         # Connect to Mikrotik API
         connection = routeros_api.RouterOsApiPool(
