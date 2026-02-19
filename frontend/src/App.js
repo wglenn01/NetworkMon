@@ -1990,30 +1990,49 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
         name: device.name,
         ip_address: device.ip_address,
         category_id: device.category_id,
+        device_type: device.device_type || 'snmp',
+        // SNMP fields
         community_string: device.community_string || 'public',
+        oids: device.oids || [],
+        // Mikrotik fields
+        mikrotik_user: device.mikrotik_user || '',
+        mikrotik_password: device.mikrotik_password || '',
+        mikrotik_port: device.mikrotik_port || 9001,
+        mikrotik_use_ssl: device.mikrotik_use_ssl ?? false,
+        mikrotik_interfaces: device.mikrotik_interfaces || [],
+        // Common fields
         ping_enabled: device.ping_enabled ?? true,
         snmp_enabled: device.snmp_enabled ?? true,
-        polling_interval: device.polling_interval ?? 300,
+        polling_interval: device.polling_interval ?? (device.device_type === 'mikrotik' ? 5 : 300),
         auto_poll: device.auto_poll ?? true,
-        alerts_silenced: device.alerts_silenced ?? false,
-        oids: device.oids || []
+        alerts_silenced: device.alerts_silenced ?? false
       });
     } else {
       setFormData({
         name: '',
         ip_address: '',
         category_id: categories[0]?.id || '',
+        device_type: 'snmp',
+        // SNMP fields
         community_string: 'public',
+        oids: [],
+        // Mikrotik fields
+        mikrotik_user: '',
+        mikrotik_password: '',
+        mikrotik_port: 9001,
+        mikrotik_use_ssl: false,
+        mikrotik_interfaces: [],
+        // Common fields
         ping_enabled: true,
         snmp_enabled: true,
         polling_interval: 300,
         auto_poll: true,
-        alerts_silenced: false,
-        oids: []
+        alerts_silenced: false
       });
     }
     setSelectedTemplate('');
     setShowSaveTemplate(false);
+    setAvailableInterfaces([]);
   }, [device, categories, open]);
   
   const applyTemplate = (templateId) => {
