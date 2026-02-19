@@ -28,6 +28,9 @@ except ImportError:
         ContextData, ObjectType, ObjectIdentity
     )
 
+# Mikrotik RouterOS API import
+import routeros_api
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
