@@ -741,15 +741,26 @@ async def root():
 @api_router.get("/scheduler/status")
 async def get_scheduler_status():
     """Get the status of the auto-poll scheduler"""
-    global scheduler_task
-    is_running = scheduler_task is not None and not scheduler_task.done()
+    global scheduler_task, mikrotik_scheduler_task
+    snmp_running = scheduler_task is not None and not scheduler_task.done()
+    mikrotik_running = mikrotik_scheduler_task is not None and not mikrotik_scheduler_task.done()
     
-    # Count devices with auto-poll enabled
-    auto_poll_count = await db.devices.count_documents({"auto_poll": True})
+    # Count devices with auto-poll enabled by type
+    snmp_count = await db.devices.count_documents({
+        "auto_poll": True,
+        "$or": [{"device_type": {"$exists": False}}, {"device_type": "snmp"}]
+    })
+    mikrotik_count = await db.devices.count_documents({
+        "auto_poll": True,
+        "device_type": "mikrotik"
+    })
     
-    # Get next device due for poll
+    # Get next SNMP device due for poll
     now = datetime.now(timezone.utc)
-    devices = await db.devices.find({"auto_poll": True}, {"_id": 0, "name": 1, "polling_interval": 1, "last_polled": 1}).to_list(100)
+    devices = await db.devices.find({
+        "auto_poll": True,
+        "$or": [{"device_type": {"$exists": False}}, {"device_type": "snmp"}]
+    }, {"_id": 0, "name": 1, "polling_interval": 1, "last_polled": 1}).to_list(100)
     
     next_poll_device = None
     min_seconds_until_poll = float('inf')
@@ -773,9 +784,13 @@ async def get_scheduler_status():
                 next_poll_device = device['name']
     
     return {
-        "scheduler_running": is_running,
+        "scheduler_running": snmp_running,
+        "mikrotik_scheduler_running": mikrotik_running,
         "check_interval_seconds": SCHEDULER_INTERVAL,
-        "auto_poll_enabled_devices": auto_poll_count,
+        "mikrotik_interval_seconds": MIKROTIK_SCHEDULER_INTERVAL,
+        "snmp_devices": snmp_count,
+        "mikrotik_devices": mikrotik_count,
+        "auto_poll_enabled_devices": snmp_count + mikrotik_count,
         "next_device_to_poll": next_poll_device,
         "seconds_until_next_poll": max(0, min_seconds_until_poll) if min_seconds_until_poll != float('inf') else None
     }
