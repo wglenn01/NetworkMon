@@ -1972,6 +1972,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
         snmp_enabled: device.snmp_enabled ?? true,
         polling_interval: device.polling_interval ?? 300,
         auto_poll: device.auto_poll ?? true,
+        alerts_silenced: device.alerts_silenced ?? false,
         oids: device.oids || []
       });
     } else {
@@ -1984,6 +1985,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
         snmp_enabled: true,
         polling_interval: 300,
         auto_poll: true,
+        alerts_silenced: false,
         oids: []
       });
     }
