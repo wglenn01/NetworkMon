@@ -2479,7 +2479,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {pollingIntervals.map(interval => (
+                        {(formData.device_type === 'mikrotik' ? mikrotikPollingIntervals : pollingIntervals).map(interval => (
                           <SelectItem key={interval.value} value={String(interval.value)}>
                             {interval.label}
                           </SelectItem>
@@ -2491,7 +2491,7 @@ const DeviceDialog = ({ open, onOpenChange, device, categories, templates, onSav
               </div>
               {formData.auto_poll && (
                 <p className="text-xs text-muted-foreground">
-                  Device will be automatically polled every {pollingIntervals.find(i => i.value === formData.polling_interval)?.label || '5 minutes'}
+                  Device will be automatically polled every {(formData.device_type === 'mikrotik' ? mikrotikPollingIntervals : pollingIntervals).find(i => i.value === formData.polling_interval)?.label || '5 seconds'}
                 </p>
               )}
             </div>
