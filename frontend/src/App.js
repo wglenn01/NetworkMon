@@ -3643,6 +3643,9 @@ function App() {
   const [editingDevice, setEditingDevice] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  // Mobile detection
+  const isMobile = useIsMobile();
+  
   // Track shown alert IDs and previous device statuses for notifications
   const shownAlertIds = useRef(new Set());
   const previousDeviceStatuses = useRef(new Map());
