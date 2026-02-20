@@ -3973,15 +3973,25 @@ function App() {
         >
           <Routes>
             <Route path="/" element={
-              <Dashboard 
-                stats={stats} 
-                alerts={alerts} 
-                devices={devices}
-                categories={categories}
-                schedulerStatus={schedulerStatus}
-                pinnedGraphs={pinnedGraphs}
-                onUnpinGraph={handleUnpinGraph}
-              />
+              isMobile ? (
+                <MobileDashboard
+                  stats={stats}
+                  alerts={alerts}
+                  devices={devices}
+                  categories={categories}
+                  onRefresh={fetchData}
+                />
+              ) : (
+                <Dashboard 
+                  stats={stats} 
+                  alerts={alerts} 
+                  devices={devices}
+                  categories={categories}
+                  schedulerStatus={schedulerStatus}
+                  pinnedGraphs={pinnedGraphs}
+                  onUnpinGraph={handleUnpinGraph}
+                />
+              )
             } />
             <Route path="/devices" element={
               <DeviceList 
@@ -3996,12 +4006,16 @@ function App() {
               />
             } />
             <Route path="/device/:deviceId" element={
-              <DeviceDetail 
-                categories={categories}
-                pinnedGraphs={pinnedGraphs}
-                onPinGraph={handlePinGraph}
-                onUnpinGraph={handleUnpinGraph}
-              />
+              isMobile ? (
+                <MobileDeviceDetail categories={categories} />
+              ) : (
+                <DeviceDetail 
+                  categories={categories}
+                  pinnedGraphs={pinnedGraphs}
+                  onPinGraph={handlePinGraph}
+                  onUnpinGraph={handleUnpinGraph}
+                />
+              )
             } />
             <Route path="/alerts" element={
               <AlertsPage 
