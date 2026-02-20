@@ -587,10 +587,35 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
                 View All <ChevronRight className="w-3 h-3 ml-1" />
               </Button>
             </div>
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={deviceSearch}
+                onChange={(e) => setDeviceSearch(e.target.value)}
+                placeholder="Search by name or IP..."
+                className="input-technical pl-9 h-8 text-sm"
+                data-testid="dashboard-device-search"
+              />
+              {deviceSearch && (
+                <button 
+                  onClick={() => setDeviceSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {devices.slice(0, 6).map((device) => {
+              {devices
+                .filter(d => 
+                  !deviceSearch || 
+                  d.name.toLowerCase().includes(deviceSearch.toLowerCase()) ||
+                  d.ip_address.includes(deviceSearch)
+                )
+                .slice(0, 8)
+                .map((device) => {
                 const category = categories.find(c => c.id === device.category_id);
                 return (
                   <div 
@@ -627,6 +652,15 @@ const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinned
                   </div>
                 );
               })}
+              {deviceSearch && devices.filter(d => 
+                d.name.toLowerCase().includes(deviceSearch.toLowerCase()) ||
+                d.ip_address.includes(deviceSearch)
+              ).length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No devices match "{deviceSearch}"</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
