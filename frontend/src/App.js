@@ -482,6 +482,7 @@ const PinnedGraphCard = ({ graph, onUnpin, devices }) => {
 // Dashboard Component
 const Dashboard = ({ stats, alerts, devices, categories, schedulerStatus, pinnedGraphs, onUnpinGraph }) => {
   const navigate = useNavigate();
+  const [deviceSearch, setDeviceSearch] = useState('');
   
   const formatTimeAgo = (dateStr) => {
     if (!dateStr) return 'Never';
