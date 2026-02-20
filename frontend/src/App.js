@@ -87,6 +87,465 @@ const playAlertSound = (type = 'critical') => {
   }
 };
 
+// Mobile detection hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
+};
+
+// Mobile Dashboard Component
+const MobileDashboard = ({ stats, alerts, devices, categories, onRefresh }) => {
+  const navigate = useNavigate();
+  const [expandedSection, setExpandedSection] = useState('devices');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return 'Never';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
+  };
+  
+  const filteredDevices = devices.filter(d => 
+    !searchQuery || 
+    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    d.ip_address.includes(searchQuery)
+  );
+  
+  const activeAlerts = alerts.filter(a => !a.acknowledged);
+  
+  return (
+    <div className="min-h-screen bg-background pb-20" data-testid="mobile-dashboard">
+      {/* Mobile Header */}
+      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border/30 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-6 h-6 text-primary" />
+            <span className="font-mono font-bold text-lg">NetGraph</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onRefresh}>
+            <RefreshCw className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
+      
+      {/* Stats Cards - Horizontal Scroll */}
+      <div className="px-4 py-3 overflow-x-auto">
+        <div className="flex gap-3 min-w-max">
+          <div className="bg-card/50 border border-border/30 px-4 py-3 min-w-[100px] text-center">
+            <p className="text-2xl font-bold font-mono text-foreground">{stats.total_devices}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
+          </div>
+          <div 
+            className="bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 min-w-[100px] text-center cursor-pointer"
+            onClick={() => navigate('/devices?status=online')}
+          >
+            <p className="text-2xl font-bold font-mono text-emerald-400">{stats.online_devices}</p>
+            <p className="text-[10px] text-emerald-400/70 uppercase tracking-wider">Online</p>
+          </div>
+          <div 
+            className="bg-red-500/10 border border-red-500/30 px-4 py-3 min-w-[100px] text-center cursor-pointer"
+            onClick={() => navigate('/devices?status=offline')}
+          >
+            <p className="text-2xl font-bold font-mono text-red-400">{stats.offline_devices}</p>
+            <p className="text-[10px] text-red-400/70 uppercase tracking-wider">Offline</p>
+          </div>
+          <div className="bg-amber-500/10 border border-amber-500/30 px-4 py-3 min-w-[100px] text-center">
+            <p className="text-2xl font-bold font-mono text-amber-400">{activeAlerts.length}</p>
+            <p className="text-[10px] text-amber-400/70 uppercase tracking-wider">Alerts</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Search Bar */}
+      <div className="px-4 pb-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search devices..."
+            className="input-technical pl-10 h-10"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Collapsible Sections */}
+      <div className="px-4 space-y-3">
+        {/* Active Alerts Section */}
+        {activeAlerts.length > 0 && (
+          <div className="bg-card/50 border border-red-500/30 overflow-hidden">
+            <button 
+              className="w-full flex items-center justify-between p-3 bg-red-500/10"
+              onClick={() => setExpandedSection(expandedSection === 'alerts' ? '' : 'alerts')}
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+                <span className="font-medium text-sm">Active Alerts ({activeAlerts.length})</span>
+              </div>
+              {expandedSection === 'alerts' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            {expandedSection === 'alerts' && (
+              <div className="divide-y divide-border/20">
+                {activeAlerts.slice(0, 5).map((alert) => (
+                  <div key={alert.id} className="p-3">
+                    <p className="font-medium text-sm">{alert.device_name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{alert.message}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-mono">
+                      {formatTimeAgo(alert.created_at)} ago
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Devices Section */}
+        <div className="bg-card/50 border border-border/30 overflow-hidden">
+          <button 
+            className="w-full flex items-center justify-between p-3"
+            onClick={() => setExpandedSection(expandedSection === 'devices' ? '' : 'devices')}
+          >
+            <div className="flex items-center gap-2">
+              <Server className="w-4 h-4 text-primary" />
+              <span className="font-medium text-sm">Devices ({filteredDevices.length})</span>
+            </div>
+            {expandedSection === 'devices' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          {expandedSection === 'devices' && (
+            <div className="divide-y divide-border/20">
+              {filteredDevices.map((device) => {
+                const category = categories.find(c => c.id === device.category_id);
+                return (
+                  <div 
+                    key={device.id}
+                    className="p-3 flex items-center gap-3 active:bg-primary/10"
+                    onClick={() => navigate(`/device/${device.id}`)}
+                  >
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                      device.status === 'online' ? 'bg-emerald-400' : 
+                      device.status === 'offline' ? 'bg-red-400' : 
+                      device.status === 'warning' ? 'bg-amber-400' : 'bg-gray-400'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{device.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{device.ip_address}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {category && (
+                        <Badge variant="outline" className="text-[9px]" style={{ borderColor: category.color, color: category.color }}>
+                          {category.name}
+                        </Badge>
+                      )}
+                      {device.device_type === 'mikrotik' && (
+                        <Badge variant="outline" className="text-[9px] text-cyan-400 border-cyan-400/30">
+                          API
+                        </Badge>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  </div>
+                );
+              })}
+              {filteredDevices.length === 0 && (
+                <div className="p-6 text-center text-muted-foreground">
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No devices found</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Categories Section */}
+        <div className="bg-card/50 border border-border/30 overflow-hidden">
+          <button 
+            className="w-full flex items-center justify-between p-3"
+            onClick={() => setExpandedSection(expandedSection === 'categories' ? '' : 'categories')}
+          >
+            <div className="flex items-center gap-2">
+              <GitBranch className="w-4 h-4 text-primary" />
+              <span className="font-medium text-sm">Categories ({categories.length})</span>
+            </div>
+            {expandedSection === 'categories' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          {expandedSection === 'categories' && (
+            <div className="divide-y divide-border/20">
+              {categories.map((cat) => {
+                const catDevices = devices.filter(d => d.category_id === cat.id);
+                const onlineCount = catDevices.filter(d => d.status === 'online').length;
+                return (
+                  <div 
+                    key={cat.id}
+                    className="p-3 flex items-center gap-3"
+                  >
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <span className="flex-1 text-sm">{cat.name}</span>
+                    <span className="text-xs font-mono">
+                      <span className="text-emerald-400">{onlineCount}</span>
+                      <span className="text-muted-foreground">/{catDevices.length}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/30 px-2 py-2 flex justify-around">
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-primary"
+          onClick={() => navigate('/')}
+        >
+          <Home className="w-5 h-5" />
+          <span className="text-[10px]">Home</span>
+        </button>
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-muted-foreground"
+          onClick={() => navigate('/devices')}
+        >
+          <Server className="w-5 h-5" />
+          <span className="text-[10px]">Devices</span>
+        </button>
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-muted-foreground relative"
+          onClick={() => navigate('/alerts')}
+        >
+          <AlertTriangle className="w-5 h-5" />
+          {activeAlerts.length > 0 && (
+            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] flex items-center justify-center text-white font-bold">
+              {activeAlerts.length > 9 ? '9+' : activeAlerts.length}
+            </span>
+          )}
+          <span className="text-[10px]">Alerts</span>
+        </button>
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-muted-foreground"
+          onClick={() => navigate('/templates')}
+        >
+          <FileText className="w-5 h-5" />
+          <span className="text-[10px]">Templates</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Mobile Device Detail Component
+const MobileDeviceDetail = ({ categories }) => {
+  const { deviceId } = useParams();
+  const navigate = useNavigate();
+  const [device, setDevice] = useState(null);
+  const [latestData, setLatestData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const fetchData = useCallback(async () => {
+    try {
+      const [deviceRes, latestRes] = await Promise.all([
+        axios.get(`${API}/devices/${deviceId}`),
+        axios.get(`${API}/monitoring/${deviceId}/latest`)
+      ]);
+      setDevice(deviceRes.data);
+      setLatestData(latestRes.data);
+    } catch (err) {
+      toast.error('Failed to load device');
+    } finally {
+      setLoading(false);
+    }
+  }, [deviceId]);
+  
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!device) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <p className="text-center text-muted-foreground">Device not found</p>
+      </div>
+    );
+  }
+  
+  const category = categories.find(c => c.id === device.category_id);
+  
+  // Format metrics for mobile display
+  const formatMetricValue = (metric) => {
+    if (metric.metric_name === 'Uptime') {
+      const secs = parseInt(metric.value);
+      const days = Math.floor(secs / 86400);
+      const hours = Math.floor((secs % 86400) / 3600);
+      return `${days}d ${hours}h`;
+    }
+    if (metric.unit === 'Mbps') {
+      return `${parseFloat(metric.value).toFixed(1)} Mbps`;
+    }
+    if (metric.unit === '%') {
+      return `${parseFloat(metric.value).toFixed(0)}%`;
+    }
+    if (metric.unit === 'ms') {
+      return `${parseFloat(metric.value).toFixed(1)} ms`;
+    }
+    return `${metric.value} ${metric.unit || ''}`;
+  };
+  
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border/30 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)}>
+            <ChevronRight className="w-6 h-6 rotate-180" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-bold truncate">{device.name}</h1>
+            <a 
+              href={`http://${device.ip_address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary font-mono"
+            >
+              {device.ip_address}
+            </a>
+          </div>
+          <div className={`w-3 h-3 rounded-full ${
+            device.status === 'online' ? 'bg-emerald-400 animate-pulse' : 
+            device.status === 'offline' ? 'bg-red-400' : 'bg-amber-400'
+          }`} />
+        </div>
+      </div>
+      
+      {/* Status Banner */}
+      <div className={`px-4 py-2 text-center text-sm font-medium ${
+        device.status === 'online' ? 'bg-emerald-500/20 text-emerald-400' :
+        device.status === 'offline' ? 'bg-red-500/20 text-red-400' :
+        'bg-amber-500/20 text-amber-400'
+      }`}>
+        {device.status.toUpperCase()}
+        {category && <span className="ml-2 opacity-70">• {category.name}</span>}
+        {device.device_type === 'mikrotik' && <span className="ml-2 opacity-70">• Mikrotik API</span>}
+      </div>
+      
+      {/* Metrics Grid */}
+      <div className="p-4 grid grid-cols-2 gap-3">
+        {[...latestData].sort((a, b) => a.metric_name.localeCompare(b.metric_name)).map((metric, idx) => (
+          <div 
+            key={idx}
+            className={`p-3 border ${
+              metric.metric_type === 'mikrotik' ? 'border-cyan-500/30 bg-cyan-500/5' :
+              metric.metric_type === 'ping' ? 'border-emerald-500/30 bg-emerald-500/5' :
+              'border-border/30 bg-card/50'
+            }`}
+          >
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
+              {metric.metric_name}
+            </p>
+            <p className="text-lg font-bold font-mono mt-1">
+              {formatMetricValue(metric)}
+            </p>
+          </div>
+        ))}
+        {latestData.length === 0 && (
+          <div className="col-span-2 text-center py-8 text-muted-foreground">
+            <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No data yet</p>
+          </div>
+        )}
+      </div>
+      
+      {/* Actions */}
+      <div className="px-4 space-y-3">
+        <Button 
+          className="w-full btn-technical"
+          onClick={() => {
+            axios.post(`${API}/monitoring/poll/${deviceId}`);
+            toast.success('Polling device...');
+            setTimeout(fetchData, 2000);
+          }}
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Poll Now
+        </Button>
+        
+        <Button 
+          variant="outline"
+          className="w-full btn-technical"
+          onClick={() => navigate(`/device/${deviceId}`)}
+        >
+          <TrendingUp className="w-4 h-4 mr-2" />
+          View Full Graphs
+        </Button>
+      </div>
+      
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/30 px-2 py-2 flex justify-around">
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-muted-foreground"
+          onClick={() => navigate('/')}
+        >
+          <Home className="w-5 h-5" />
+          <span className="text-[10px]">Home</span>
+        </button>
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-muted-foreground"
+          onClick={() => navigate('/devices')}
+        >
+          <Server className="w-5 h-5" />
+          <span className="text-[10px]">Devices</span>
+        </button>
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-muted-foreground"
+          onClick={() => navigate('/alerts')}
+        >
+          <AlertTriangle className="w-5 h-5" />
+          <span className="text-[10px]">Alerts</span>
+        </button>
+        <button 
+          className="flex flex-col items-center gap-1 p-2 text-muted-foreground"
+          onClick={() => navigate('/templates')}
+        >
+          <FileText className="w-5 h-5" />
+          <span className="text-[10px]">Templates</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Format value based on data type - returns { display, unit } for auto-scaling types
 const formatValue = (value, dataType, unit) => {
   if (value === null || value === undefined) return '-';
