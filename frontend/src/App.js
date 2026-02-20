@@ -3602,6 +3602,13 @@ const CategoryDialog = ({ open, onOpenChange, onSave }) => {
 
 // Main Layout Component
 const MainLayout = ({ children, categories, categoryStats, activeCategory, setActiveCategory, onAddCategory, onDeleteCategory }) => {
+  const isMobile = useIsMobile();
+  
+  // On mobile, render children directly without sidebar
+  if (isMobile) {
+    return <>{children}</>;
+  }
+  
   return (
     <div className="flex min-h-screen">
       <Sidebar 
